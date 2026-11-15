@@ -54,7 +54,7 @@
   function start(user) {
     $("#fb-me").textContent = user.email || "your account";
     $("#fb-auth").hidden = true; $("#fb-app").hidden = false;
-    rpc("fb_is_admin").then(function (a) { admin = !!a; render(); }, function () {});
+    rpc("fb_is_admin").then(function (a) { admin = !!a; document.querySelectorAll(".fb-admin").forEach(function (el) { el.hidden = !admin; }); render(); }, function () {});
     load();
   }
 
@@ -88,11 +88,11 @@
       Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (k === i.status ? " selected" : "") + ">" + STATUS[k] + "</option>"; }).join("") + "</select>" +
       '<label class="sr" for="fb-ar-' + i.id + '">Section</label><select class="fb-sel fb-st" id="fb-ar-' + i.id + '" data-act="area" data-id="' + i.id + '">' +
       Object.keys(AREA).map(function (k) { return '<option value="' + k + '"' + (k === (i.area || "general") ? " selected" : "") + ">" + AREA[k] + "</option>"; }).join("") + "</select>" : "";
-    return '<li class="fb-item' + (open ? " open" : "") + '" id="fb-i-' + i.id + '">' +
-      '<button type="button" class="fb-vote' + (i.my_vote ? " on" : "") + '" data-act="vote" data-id="' + i.id + '" aria-pressed="' + !!i.my_vote + '" aria-label="' + (i.my_vote ? "Remove your vote" : "Vote for this") + ", " + i.votes + ' votes">' +
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><span>' + i.votes + "</span></button>" +
+    return '<li class="fb-item k-' + i.kind + (open ? " open" : "") + '" id="fb-i-' + i.id + '">' +
+      (i.kind === "test" ? '<span class="fb-vote fb-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z"/></svg></span>' : '<button type="button" class="fb-vote' + (i.my_vote ? " on" : "") + '" data-act="vote" data-id="' + i.id + '" aria-pressed="' + !!i.my_vote + '" aria-label="' + (i.my_vote ? "Remove your vote" : "Vote for this") + ", " + i.votes + ' votes">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><span>' + i.votes + "</span></button>") +
       '<div class="fb-main">' +
-        '<div class="fb-tags"><span class="fb-kind ' + i.kind + '">' + (i.kind === "bug" ? "Bug" : "Feature") + '</span><span class="fb-area">' + AREA[i.area || "general"] + '</span><span class="fb-status s-' + i.status + '">' + STATUS[i.status] + "</span></div>" +
+        '<div class="fb-tags"><span class="fb-kind ' + i.kind + '">' + (i.kind === "bug" ? "Bug" : i.kind === "test" ? "Test (team only)" : "Feature") + '</span><span class="fb-area">' + AREA[i.area || "general"] + '</span><span class="fb-status s-' + i.status + '">' + STATUS[i.status] + "</span></div>" +
         '<h3 class="fb-title"><button type="button" class="fb-open" data-act="open" data-id="' + i.id + '" aria-expanded="' + open + '">' + esc(i.title) + "</button></h3>" +
         '<p class="fb-meta">' + esc(i.author) + " &middot; " + when(i.created_at) + " &middot; " + i.comments + (i.comments === 1 ? " comment" : " comments") + "</p>" +
         (open ? '<div class="fb-detail"><p class="fb-body">' + esc(i.body) + "</p>" +
@@ -159,9 +159,9 @@
   /* new post */
   function setKind(k) {
     document.querySelectorAll('#fb-new input[name=kind]').forEach(function (r) { r.checked = r.value === k; });
-    var bug = k === "bug";
-    $("#fb-new-h").textContent = bug ? "Report a bug" : "Suggest a feature";
-    $("#fb-body-l").textContent = bug ? "What happened? What did you expect, and how can we make it happen again?" : "What would you like, and how would it help you?";
+    var bug = k === "bug", test = k === "test";
+    $("#fb-new-h").textContent = bug ? "Report a bug" : test ? "Log something to test" : "Suggest a feature";
+    $("#fb-body-l").textContent = bug ? "What happened? What did you expect, and how can we make it happen again?" : test ? "What needs testing, and how will you know it works? Only the Movage team can see this." : "What would you like, and how would it help you?";
     $("#fb-device-wrap").hidden = !bug;
   }
   document.querySelectorAll("[data-new]").forEach(function (b) {
