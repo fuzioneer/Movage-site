@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bugs and ideas | Movage</title>
+<meta name="description" content="Report a bug or suggest a feature for the Movage app, and vote on what we build next.">
+<meta name="theme-color" content="#0f1412">
+<link rel="canonical" href="https://www.movage.co.uk/feedback.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="manifest" href="site.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/site.css?v=5">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap"><a class="brand" href="./" aria-label="Movage home"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"></a><nav class="nav" aria-label="Main"><a href="./#features">Features</a><a href="feedback.html" aria-current="page">Bugs and ideas</a></nav><a class="btn btn-primary" href="./#join">Get early access</a></div></header>
+
+<main id="main" class="doc fb">
+<p class="eyebrow">Help shape Movage</p>
+<h1>Bugs and ideas</h1>
+<p class="meta">Report something that isn't working, suggest a feature, and vote for the ideas you want most. We read every post.</p>
+
+<!-- Signed out: email code sign-in -->
+<section id="fb-auth" class="box fb-auth" hidden>
+  <h2 class="fb-h">Sign in to take part</h2>
+  <p>Enter your email and we'll send you a sign-in code. No password needed. If you use Community in the Movage app, use the same email and you'll keep your nickname.</p>
+  <form id="fb-email-form" class="fb-step" novalidate>
+    <label class="sr" for="fb-email">Email address</label>
+    <div class="field"><input id="fb-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required><button class="btn btn-primary" type="submit">Send code</button></div>
+  </form>
+  <form id="fb-code-form" class="fb-step" novalidate hidden>
+    <p>We've sent a code to <strong id="fb-sent-to"></strong>. It can take a minute, so check your spam folder too.</p>
+    <label class="sr" for="fb-code">Sign-in code</label>
+    <div class="field"><input id="fb-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter the code" required><button class="btn btn-primary" type="submit">Sign in</button></div>
+    <button class="fb-link" type="button" id="fb-restart">Use a different email</button>
+  </form>
+  <p class="fb-msg" id="fb-auth-msg" role="status" aria-live="polite"></p>
+  <p class="fb-fine">By signing in you agree to our <a href="privacy.html">privacy policy</a>. We only use your email to sign you in and to reply to your posts. Other people see your Community nickname, never your email.</p>
+</section>
+
+<!-- Signed in: the board -->
+<section id="fb-app" hidden>
+  <div class="fb-bar">
+    <span class="fb-who">Signed in as <strong id="fb-me"></strong></span>
+    <button class="fb-link" type="button" id="fb-signout">Sign out</button>
+  </div>
+
+  <div class="fb-actions">
+    <button class="btn btn-primary" type="button" data-new="bug">Report a bug</button>
+    <button class="btn btn-ghost" type="button" data-new="feature">Suggest a feature</button>
+  </div>
+
+  <form id="fb-new" class="box fb-new" novalidate hidden>
+    <h2 class="fb-h" id="fb-new-h">Report a bug</h2>
+    <div class="fb-seg" role="radiogroup" aria-label="Type">
+      <label><input type="radio" name="kind" value="bug" checked><span>Bug</span></label>
+      <label><input type="radio" name="kind" value="feature"><span>Feature idea</span></label>
+    </div>
+    <label class="fb-l" for="fb-title">Title</label>
+    <input class="fb-in" id="fb-title" maxlength="120" required placeholder="A short summary">
+    <label class="fb-l" for="fb-body" id="fb-body-l">What happened?</label>
+    <textarea class="fb-in" id="fb-body" rows="6" maxlength="4000" required></textarea>
+    <div id="fb-device-wrap">
+      <label class="fb-l" for="fb-device">Phone and app version <span class="fb-opt">(optional, only the Movage team sees this)</span></label>
+      <input class="fb-in" id="fb-device" maxlength="200" placeholder="e.g. iPhone 15, iOS 18, Movage 1.47">
+    </div>
+    <p class="fb-msg" id="fb-new-msg" role="status" aria-live="polite"></p>
+    <div class="fb-row"><button class="btn btn-primary" type="submit">Post</button><button class="btn btn-ghost" type="button" id="fb-cancel">Cancel</button></div>
+  </form>
+
+  <div class="fb-filters">
+    <div class="fb-chips" role="tablist" aria-label="Show">
+      <button type="button" class="fb-chip on" data-kind="all" role="tab" aria-selected="true">All</button>
+      <button type="button" class="fb-chip" data-kind="bug" role="tab" aria-selected="false">Bugs</button>
+      <button type="button" class="fb-chip" data-kind="feature" role="tab" aria-selected="false">Features</button>
+    </div>
+    <div class="fb-sels">
+      <label class="sr" for="fb-status">Status</label>
+      <select id="fb-status" class="fb-sel"><option value="active">Open and planned</option><option value="done">Done</option><option value="all">Everything</option></select>
+      <label class="sr" for="fb-sort">Sort</label>
+      <select id="fb-sort" class="fb-sel"><option value="top">Most votes</option><option value="new">Newest</option></select>
+    </div>
+  </div>
+
+  <p class="fb-msg" id="fb-list-msg" role="status" aria-live="polite"></p>
+  <ol id="fb-list" class="fb-list"></ol>
+</section>
+
+<noscript><div class="box"><p>This page needs JavaScript. You can also email <a href="mailto:support@movage.co.uk">support@movage.co.uk</a>.</p></div></noscript>
+</main>
+
+<footer class="foot"><div class="wrap"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"><nav aria-label="Footer"><a href="https://www.instagram.com/movageapp/" rel="noopener" target="_blank">Instagram</a><a href="support.html">Support</a><a href="feedback.html" aria-current="page">Bugs and ideas</a><a href="privacy.html">Privacy</a><a href="delete-account.html">Delete your account</a></nav><div class="fine"><span>&copy; 2026 Movage. All rights reserved.</span><span class="tag">Joint Venture</span></div></div></footer>
+<script src="assets/supabase.js"></script>
+<script src="assets/feedback.js?v=1"></script>
+</body>
+</html>
