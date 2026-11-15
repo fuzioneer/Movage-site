@@ -4,10 +4,11 @@
   "use strict";
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
+  var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", general: "Something else" };
   var STATUS = { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done", wont_fix: "Won't do" };
   var $ = function (s) { return document.querySelector(s); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
-  var sb, items = [], admin = false, view = { kind: "all", status: "active", sort: "top" }, openId = null, email = "";
+  var sb, items = [], admin = false, view = { kind: "all", area: "all", status: "active", sort: "top" }, openId = null, email = "";
 
   if (!window.supabase || !window.supabase.createClient) { $("#fb-auth").hidden = false; msg("#fb-auth-msg", "Sorry, sign-in couldn't load. Please refresh the page.", true); return; }
   sb = window.supabase.createClient(URL_, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "movage-site-auth" } });
@@ -68,6 +69,7 @@
   function shown() {
     return items.filter(function (i) {
       if (view.kind !== "all" && i.kind !== view.kind) return false;
+      if (view.area !== "all" && (i.area || "general") !== view.area) return false;
       if (view.status === "active") return i.status === "open" || i.status === "planned" || i.status === "in_progress";
       if (view.status === "done") return i.status === "done" || i.status === "wont_fix";
       return true;
@@ -83,12 +85,14 @@
   function card(i) {
     var open = openId === i.id;
     var statusSel = admin ? '<label class="sr" for="fb-st-' + i.id + '">Status</label><select class="fb-sel fb-st" id="fb-st-' + i.id + '" data-act="status" data-id="' + i.id + '">' +
-      Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (k === i.status ? " selected" : "") + ">" + STATUS[k] + "</option>"; }).join("") + "</select>" : "";
+      Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (k === i.status ? " selected" : "") + ">" + STATUS[k] + "</option>"; }).join("") + "</select>" +
+      '<label class="sr" for="fb-ar-' + i.id + '">Section</label><select class="fb-sel fb-st" id="fb-ar-' + i.id + '" data-act="area" data-id="' + i.id + '">' +
+      Object.keys(AREA).map(function (k) { return '<option value="' + k + '"' + (k === (i.area || "general") ? " selected" : "") + ">" + AREA[k] + "</option>"; }).join("") + "</select>" : "";
     return '<li class="fb-item' + (open ? " open" : "") + '" id="fb-i-' + i.id + '">' +
       '<button type="button" class="fb-vote' + (i.my_vote ? " on" : "") + '" data-act="vote" data-id="' + i.id + '" aria-pressed="' + !!i.my_vote + '" aria-label="' + (i.my_vote ? "Remove your vote" : "Vote for this") + ", " + i.votes + ' votes">' +
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><span>' + i.votes + "</span></button>" +
       '<div class="fb-main">' +
-        '<div class="fb-tags"><span class="fb-kind ' + i.kind + '">' + (i.kind === "bug" ? "Bug" : "Feature") + '</span><span class="fb-status s-' + i.status + '">' + STATUS[i.status] + "</span></div>" +
+        '<div class="fb-tags"><span class="fb-kind ' + i.kind + '">' + (i.kind === "bug" ? "Bug" : "Feature") + '</span><span class="fb-area">' + AREA[i.area || "general"] + '</span><span class="fb-status s-' + i.status + '">' + STATUS[i.status] + "</span></div>" +
         '<h3 class="fb-title"><button type="button" class="fb-open" data-act="open" data-id="' + i.id + '" aria-expanded="' + open + '">' + esc(i.title) + "</button></h3>" +
         '<p class="fb-meta">' + esc(i.author) + " &middot; " + when(i.created_at) + " &middot; " + i.comments + (i.comments === 1 ? " comment" : " comments") + "</p>" +
         (open ? '<div class="fb-detail"><p class="fb-body">' + esc(i.body) + "</p>" +
@@ -122,7 +126,13 @@
     }
   });
   $("#fb-list").addEventListener("change", function (e) {
-    var t = e.target; if (t.dataset.act !== "status") return;
+    var t = e.target;
+    if (t.dataset.act === "area") {
+      var ia = byId(Number(t.dataset.id)), wasA = ia.area; ia.area = t.value;
+      rpc("fb_set_area", { p_id: ia.id, p_area: t.value }).then(render, function (er) { ia.area = wasA; render(); msg("#fb-list-msg", errText(er), true); });
+      return;
+    }
+    if (t.dataset.act !== "status") return;
     var i = byId(Number(t.dataset.id)), was = i.status; i.status = t.value;
     rpc("fb_set_status", { p_id: i.id, p_status: t.value }).then(render, function (er) { i.status = was; render(); msg("#fb-list-msg", errText(er), true); });
   });
@@ -142,6 +152,7 @@
       render();
     });
   });
+  $("#fb-sec").addEventListener("change", function () { view.area = this.value; render(); });
   $("#fb-status").addEventListener("change", function () { view.status = this.value; render(); });
   $("#fb-sort").addEventListener("change", function () { view.sort = this.value; render(); });
 
@@ -161,10 +172,12 @@
   $("#fb-new").addEventListener("submit", function (e) {
     e.preventDefault();
     var kind = document.querySelector('#fb-new input[name=kind]:checked').value, title = $("#fb-title").value.trim(), body = $("#fb-body").value.trim();
+    var area = $("#fb-area").value;
+    if (!area) { msg("#fb-new-msg", "Please choose which part of the app this is about.", true); $("#fb-area").focus(); return; }
     if (title.length < 4) { msg("#fb-new-msg", "Please add a title of at least 4 characters.", true); return; }
     if (body.length < 10) { msg("#fb-new-msg", "Please add a little more detail (at least 10 characters).", true); return; }
     var b = $("#fb-new button[type=submit]"); b.disabled = true; msg("#fb-new-msg", "Posting...");
-    rpc("fb_create", { p_kind: kind, p_title: title, p_body: body, p_device: kind === "bug" ? $("#fb-device").value.trim() : null }).then(function (id) {
+    rpc("fb_create", { p_kind: kind, p_title: title, p_body: body, p_device: kind === "bug" ? $("#fb-device").value.trim() : null, p_area: area }).then(function (id) {
       b.disabled = false; $("#fb-new").reset(); $("#fb-new").hidden = true; msg("#fb-new-msg", "");
       openId = id; view.status = "active"; $("#fb-status").value = "active";
       return load().then(function () { msg("#fb-list-msg", "Thanks, your post is up. We'll reply here."); var el = document.getElementById("fb-i-" + id); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); });
