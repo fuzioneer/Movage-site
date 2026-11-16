@@ -1,12 +1,12 @@
 /* Movage visitor counter. Cookie free: it sets no cookies and stores nothing on your device.
    It sends the page address, the site you came from (domain only), any campaign tag and your time zone
-   (to estimate the country). Signed-in team members and browsers with Do Not Track or Global Privacy
-   Control switched on are not counted. */
+   (to estimate the country). Signed-in team members, anyone who opts out on the privacy page and
+   browsers with Do Not Track or Global Privacy Control switched on are not counted. */
 (function () {
   "use strict";
   try {
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl) return;
-    if (localStorage.getItem("movage-admin") === "1") return;
+    if (localStorage.getItem("movage-admin") === "1" || localStorage.getItem("movage-nocount") === "1") return;
   } catch (e) {}
   if (!/(^|\.)movage\.co\.uk$|^localhost$/.test(location.hostname)) return;
   if (/statsinfo/.test(location.pathname)) return;
