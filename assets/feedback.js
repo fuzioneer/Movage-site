@@ -61,10 +61,21 @@
   /* ---------- board ---------- */
   function load() {
     msg("#fb-list-msg", "Loading...");
-    return rpc("fb_list").then(function (d) { items = d || []; msg("#fb-list-msg", ""); render(); }, function (e) {
+    return rpc("fb_list").then(function (d) { items = d || []; msg("#fb-list-msg", ""); render(); openLinked(); }, function (e) {
       msg("#fb-list-msg", errText(e), true);
       if (/sign in/i.test(errText(e))) showAuth();
     });
+  }
+  /* Links in the alert emails go straight to a post: feedback.html?post=123 (or #post-123). Open it, whatever the filters say. */
+  var linked = (function () { try { var q = new URLSearchParams(location.search).get("post"), h = (location.hash.match(/^#post-(\d+)$/) || [])[1]; return Number(q || h) || null; } catch (e) { return null; } })();
+  function openLinked() {
+    if (!linked) return; var id = linked; linked = null;
+    var it = byId(id); if (!it) { msg("#fb-list-msg", "That post isn't available. It may have been deleted.", true); return; }
+    view = { kind: "all", area: "all", status: "all", sort: view.sort };
+    document.querySelectorAll(".fb-chip").forEach(function (x) { var on = x.dataset.kind === "all"; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+    $("#fb-sec").value = "all"; $("#fb-status").value = "all";
+    openId = id; render();
+    var el = document.getElementById("fb-i-" + id); if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); el.classList.add("flash"); setTimeout(function () { el.classList.remove("flash"); }, 2400); }
   }
   function shown() {
     return items.filter(function (i) {

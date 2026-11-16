@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Community | Movage</title>
+<meta name="description" content="Movage Community: start or join a club, and see the mobility time and score leaderboards for your friends, your gym or everyone on Movage.">
+<meta name="theme-color" content="#0f1412">
+<link rel="canonical" href="https://www.movage.co.uk/community.html">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="manifest" href="site.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/site.css?v=10">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap"><a class="brand" href="./" aria-label="Movage home"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"></a><nav class="nav" aria-label="Main"><a href="./#features">Features</a><a href="community.html" aria-current="page">Community</a><a href="feedback.html">Bugs and ideas</a></nav><a class="btn btn-primary" href="./#join">Get early access</a></div></header>
+
+<main id="main" class="doc fb cm">
+<p class="eyebrow">Move together</p>
+<h1>Community</h1>
+<p class="meta">Start or join a club, see who's putting the time in, and compare mobility scores with friends, your gym or everyone on Movage. It's the same Community as in the app, with the same account.</p>
+
+<!-- Signed out: email code sign-in -->
+<section id="cm-auth" class="box fb-auth" hidden>
+  <h2 class="fb-h">Sign in or create an account</h2>
+  <p>Enter your email and we'll send you a sign-in code. No password needed. Use the same email as in the Movage app to see your clubs and keep your nickname.</p>
+  <form id="cm-email-form" class="fb-step" novalidate>
+    <label class="sr" for="cm-email">Email address</label>
+    <div class="field"><input id="cm-email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required><button class="btn btn-primary" type="submit">Send code</button></div>
+  </form>
+  <form id="cm-code-form" class="fb-step" novalidate hidden>
+    <p>We've sent a code to <strong id="cm-sent-to"></strong>. It can take a minute, so check your spam folder too.</p>
+    <label class="sr" for="cm-code">Sign-in code</label>
+    <div class="field"><input id="cm-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter the code" required><button class="btn btn-primary" type="submit">Sign in</button></div>
+    <button class="fb-link" type="button" id="cm-restart">Use a different email</button>
+  </form>
+  <p class="fb-msg" id="cm-auth-msg" role="status" aria-live="polite"></p>
+  <p class="fb-fine">By signing in you agree to our <a href="privacy.html">privacy policy</a>. Your email is never shown to anyone. Other people only see your nickname.</p>
+</section>
+
+<!-- First time: choose a nickname -->
+<section id="cm-nick" class="box" hidden>
+  <h2 class="fb-h" id="cm-nick-h">Choose a nickname</h2>
+  <p>This is the only name other people will see on the leaderboards.</p>
+  <form id="cm-nick-form" novalidate>
+    <label class="fb-l" for="cm-nick-in">Nickname</label>
+    <input class="fb-in" id="cm-nick-in" maxlength="20" autocomplete="nickname" placeholder="2 to 20 characters" required>
+    <label class="cm-check"><input type="checkbox" id="cm-st" checked> Show my mobility time on leaderboards</label>
+    <label class="cm-check"><input type="checkbox" id="cm-ss" checked> Show my mobility score on leaderboards</label>
+    <p class="fb-msg" id="cm-nick-msg" role="status" aria-live="polite"></p>
+    <div class="fb-row"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-ghost" type="button" id="cm-nick-cancel" hidden>Cancel</button></div>
+  </form>
+</section>
+
+<!-- Signed in -->
+<section id="cm-app" hidden>
+  <div class="fb-bar">
+    <span class="fb-who">Signed in as <strong id="cm-me"></strong></span>
+    <button class="fb-link" type="button" id="cm-signout">Sign out</button>
+  </div>
+
+  <div class="cm-scopes" role="tablist" aria-label="Leaderboard" id="cm-scopes"></div>
+
+  <div class="fb-chips cm-boards" role="tablist" aria-label="Board" id="cm-boards"></div>
+  <div class="fb-chips cm-sub" id="cm-sub"></div>
+
+  <p class="fb-msg" id="cm-list-msg" role="status" aria-live="polite"></p>
+  <ol class="cm-board" id="cm-board" aria-live="polite"></ol>
+  <p class="cm-note" id="cm-note"></p>
+
+  <div id="cm-club"></div>
+
+  <section class="box cm-joinbox" id="cm-joinbox" hidden>
+    <h2 class="fb-h">Join or create a club</h2>
+    <form id="cm-join-form" novalidate>
+      <h3>Join with a code</h3>
+      <p>Ask a club member for their 6-letter invite code.</p>
+      <label class="sr" for="cm-join-code">Invite code</label>
+      <div class="field"><input id="cm-join-code" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC234" required><button class="btn btn-primary" type="submit">Join</button></div>
+    </form>
+    <form id="cm-create-form" novalidate>
+      <h3>Start a new club</h3>
+      <p>For your gym, run club, team or friends. You'll get an invite code to share, and your club gets its own leaderboard.</p>
+      <label class="sr" for="cm-new-name">Club name</label>
+      <div class="field"><input id="cm-new-name" maxlength="40" placeholder="Club name" required><button class="btn btn-ghost" type="submit">Create</button></div>
+      <label class="cm-check"><input type="checkbox" id="cm-new-listed" checked> Show on the Top clubs leaderboard</label>
+      <p class="fb-fine">Only the club name and member count are shown, never who's in it.</p>
+    </form>
+    <p class="fb-msg" id="cm-join-msg" role="status" aria-live="polite"></p>
+  </section>
+
+  <h2>Your profile</h2>
+  <div class="box cm-prof">
+    <p>Your nickname is <strong id="cm-nickname"></strong>. <button class="fb-link" type="button" id="cm-nick-edit">Change nickname</button></p>
+    <label class="cm-check"><input type="checkbox" id="cm-p-st"> Show my mobility time</label>
+    <label class="cm-check"><input type="checkbox" id="cm-p-ss"> Show my mobility score</label>
+    <p class="fb-fine">Your time and score come from the Movage app: finish a guided routine or save a mobility test there and it appears here.</p>
+    <div class="fb-row"><button class="btn btn-ghost cm-danger" type="button" id="cm-delete">Delete my account</button></div>
+    <p class="fb-fine">Deleting your account removes your nickname, clubs, shared time and score from Movage's servers. Your history in the app stays on your phone.</p>
+    <p class="fb-msg" id="cm-prof-msg" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<noscript><div class="box"><p>This page needs JavaScript.</p></div></noscript>
+</main>
+
+<footer class="foot"><div class="wrap"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"><nav aria-label="Footer"><a href="https://www.instagram.com/movageapp/" rel="noopener" target="_blank">Instagram</a><a href="community.html" aria-current="page">Community</a><a href="support.html">Support</a><a href="feedback.html">Bugs and ideas</a><a href="privacy.html">Privacy</a><a href="delete-account.html">Delete your account</a></nav><div class="fine"><span>&copy; 2026 Movage. All rights reserved.</span><span class="tag">Joint Venture</span></div></div></footer>
+<script src="assets/supabase.js"></script>
+<script src="assets/community.js?v=2"></script>
+</body>
+</html>

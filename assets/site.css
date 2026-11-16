@@ -308,3 +308,42 @@ select.fb-in { min-height: 50px; appearance: auto; }
 .fb-filters.dim { opacity: .45; }
 .fb-snip { margin: 4px 0 2px; font-size: 14px; opacity: .8; }
 .fb-list mark { background: rgba(70,179,159,.35); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* Community page */
+.cm-scopes { margin: 18px 0 12px; }
+.cm-scopes .fb-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.cm-scopes .fb-chips::-webkit-scrollbar { display: none; }
+.cm-scopes .fb-chip { white-space: nowrap; }
+.fb-chip.cm-add { border-style: dashed; color: var(--teal); }
+.cm-boards { margin-bottom: 10px; }
+.cm-sub .fb-chip { min-height: 36px; font-size: 14px; }
+.cm-board { list-style: none; padding: 6px 0 !important; margin: 14px 0 0 !important; background: var(--card); border: 1px solid var(--line); border-radius: 18px; }
+.cm-row { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--text) !important; }
+.cm-row:first-child { border-top: 0; }
+.cm-row.me { background: var(--tint); }
+.cm-rank { width: 28px; text-align: center; font-weight: 800; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.cm-row:nth-child(1) .cm-rank { color: #e8c35a; } .cm-row:nth-child(2) .cm-rank { color: #c9d1d6; } .cm-row:nth-child(3) .cm-rank { color: #d39a6a; }
+.cm-name { flex: 1; min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
+.cm-you { color: var(--text-2); font-weight: 500; font-size: 14px; }
+.cm-mem { display: block; color: var(--text-2); font-weight: 500; font-size: 13px; }
+.cm-val { font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cm-val b { font-size: 18px; }
+.cm-tick { width: 18px; height: 18px; display: inline-grid; place-items: center; }
+.cm-tick svg { width: 16px; height: 16px; fill: transparent; }
+.cm-tick.on svg { fill: var(--teal); }
+.fb-chip .cm-tick { margin-right: 6px; vertical-align: -3px; }
+.fb-chip .cm-tick svg { fill: var(--text-2); }
+.fb-chip .cm-tick.on svg { fill: var(--teal); }
+.cm-empty { padding: 18px; color: var(--text-2) !important; }
+.cm-note { font-size: 14px !important; color: var(--text-2) !important; }
+.cm-clubcard, .cm-joinbox, .cm-prof { margin-top: 18px; }
+.cm-code { font-size: 20px; letter-spacing: .12em; color: var(--text); }
+.cm-check { display: flex; gap: 10px; align-items: center; margin-top: 14px; color: var(--text-3); cursor: pointer; }
+.cm-check input { width: 20px; height: 20px; accent-color: var(--teal); flex: none; }
+.cm-joinbox h3 { margin-top: 22px !important; }
+.cm-joinbox form + form { border-top: 1px solid var(--line); margin-top: 22px; }
+.cm-danger { color: #e3914f !important; border-color: rgba(227,145,79,.5) !important; }
+
+/* Post opened from an email link */
+.fb-item.flash { box-shadow: 0 0 0 3px rgba(70,179,159,.6); transition: box-shadow .6s; }
+.fb-item { scroll-margin-top: 90px; }
