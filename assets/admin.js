@@ -1,0 +1,114 @@
+/* Movage admin statistics. The page itself is public, but the numbers come from admin_stats(), which the database
+   only answers for Movage team accounts (fb_is_admin). Only totals and counts, never anyone's email. */
+(function () {
+  "use strict";
+  /* Don't run inside someone else's frame (clickjacking). */
+  if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) {} document.documentElement.style.display = "none"; return; }
+  var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
+  var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var num = function (v) { var n = Number(v); return isFinite(n) ? n : 0; };
+  var fmt = function (v) { return num(v).toLocaleString("en-GB"); };
+  var sb, email = "", T0 = Date.now();
+  function msg(sel, text, bad) { var el = $(sel); if (!el) return; el.textContent = text || ""; el.classList.toggle("bad", !!bad); }
+  function show(id) { ["#ad-auth", "#ad-denied", "#ad-app"].forEach(function (s) { $(s).hidden = s !== id; }); }
+  function errText(e) { var m = String((e && (e.message || e.error_description)) || e || ""); if (/rate|too many/i.test(m)) return "Please wait a minute before trying again."; if (/expired|invalid|token/i.test(m)) return "That code didn't work. Check it, or ask for a new one."; return m || "Something went wrong."; }
+  function hm(s) { var m = Math.round(num(s) / 60), h = Math.floor(m / 60); return h ? fmt(h) + " h " + (m % 60) + " min" : m + " min"; }
+  function short(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }); }
+
+  if (!window.supabase || !window.supabase.createClient) { show("#ad-auth"); msg("#ad-auth-msg", "Sign-in couldn't load. Please refresh.", true); return; }
+  sb = window.supabase.createClient(URL_, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "movage-site-auth" } });
+
+  /* ---------- sign in (same email code as the rest of the site) ---------- */
+  function showAuth() { show("#ad-auth"); $("#ad-email-form").hidden = false; $("#ad-code-form").hidden = true; }
+  $("#ad-email-form").addEventListener("submit", function (e) {
+    e.preventDefault(); var v = $("#ad-email").value.trim(), hp = this.querySelector('[name="company"]');
+    if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v)) { msg("#ad-auth-msg", "Please enter a valid email address.", true); return; }
+    if ((hp && hp.value) || Date.now() - T0 < 2500) return;
+    var b = $("#ad-email-form button"); b.disabled = true; msg("#ad-auth-msg", "Sending your code...");
+    sb.auth.signInWithOtp({ email: v, options: { shouldCreateUser: false } }).then(function (r) {
+      b.disabled = false;
+      if (r.error) { msg("#ad-auth-msg", /signups not allowed|not found/i.test(r.error.message || "") ? "There's no account with that email." : errText(r.error), true); return; }
+      email = v; $("#ad-sent-to").textContent = v; $("#ad-email-form").hidden = true; $("#ad-code-form").hidden = false; msg("#ad-auth-msg", ""); $("#ad-code").focus();
+    });
+  });
+  $("#ad-code-form").addEventListener("submit", function (e) {
+    e.preventDefault(); var code = $("#ad-code").value.replace(/\D/g, "");
+    if (code.length < 6) { msg("#ad-auth-msg", "Enter the code from the email.", true); return; }
+    sb.auth.verifyOtp({ email: email, token: code, type: "email" }).then(function (r) { if (r.error) { msg("#ad-auth-msg", errText(r.error), true); return; } msg("#ad-auth-msg", ""); start(); });
+  });
+  $("#ad-restart").addEventListener("click", showAuth);
+  function signOut() { sb.auth.signOut().then(showAuth); }
+  $("#ad-signout").addEventListener("click", signOut);
+  $("#ad-switch").addEventListener("click", signOut);
+
+  function start() {
+    sb.auth.getUser().then(function (r) {
+      var u = r.data && r.data.user; if (!u) return showAuth();
+      return sb.rpc("fb_is_admin").then(function (a) {
+        if (!a.data) { $("#ad-who").textContent = u.email || ""; show("#ad-denied"); return; }
+        $("#ad-me").textContent = u.email || ""; show("#ad-app"); load();
+      });
+    });
+  }
+
+  /* ---------- stats ---------- */
+  function load() {
+    msg("#ad-msg", "Loading..."); $("#ad-body").setAttribute("aria-busy", "true");
+    sb.rpc("admin_stats", { p_days: Number($("#ad-days").value) }).then(function (r) {
+      $("#ad-body").removeAttribute("aria-busy");
+      if (r.error) { msg("#ad-msg", errText(r.error), true); return; }
+      msg("#ad-msg", "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ".");
+      draw(r.data || {});
+    });
+  }
+  $("#ad-days").addEventListener("change", load);
+  $("#ad-refresh").addEventListener("click", load);
+
+  function card(v, label, sub) { return '<div class="cm-stat"><b>' + v + "</b><span>" + label + "</span>" + (sub ? '<small class="ad-sub">' + sub + "</small>" : "") + "</div>"; }
+  function bars(rows, val, label, tip) {
+    var max = Math.max.apply(null, rows.map(function (r) { return num(val(r)); }).concat([1]));
+    return '<div class="cm-bars ad-bars" role="img" aria-label="' + esc(label) + '">' + rows.map(function (r) { var v = num(val(r)); return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(5, Math.round(v / max * 100)) : 2) + '%" title="' + esc(tip(r)) + '"></span>'; }).join("") + "</div>" +
+      (rows.length ? '<div class="ad-axis"><span>' + esc(short(rows[0].d)) + "</span><span>" + esc(short(rows[rows.length - 1].d)) + "</span></div>" : "");
+  }
+  function table(head, rows) { return '<table class="ad-table"><thead><tr>' + head.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + (rows.length ? rows.join("") : '<tr><td colspan="' + head.length + '">None yet</td></tr>') + "</tbody></table>"; }
+  function section(title, inner) { return '<section class="box ad-sec"><h2 class="fb-h">' + title + "</h2>" + inner + "</section>"; }
+  var ZONES = [["shoulders", "Shoulders", "var(--z-sh)"], ["overhead", "Overhead", "var(--z-oh)"], ["thorax", "Thorax", "var(--z-th)"], ["postchain", "Posterior chain", "var(--z-pc)"], ["hips", "Hips", "var(--z-hp)"], ["ankles", "Ankles", "var(--z-an)"]];
+  var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", website: "Website", general: "Something else" };
+  var DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  function draw(s) {
+    var a = s.accounts || {}, c = s.community || {}, se = s.sessions || {}, sc = s.scores || {}, ea = s.early_access || {}, fb = s.feedback || {}, d = num(s.days);
+    var h = '<div class="cm-stats">' +
+      card(fmt(a.total), "Accounts", "+" + fmt(a.new_7) + " this week") +
+      card(fmt(a.active_7), "Signed in, last 7 days", fmt(a.active_30) + " in 30 days") +
+      card(fmt(se.users_7), "Did a routine, last 7 days", fmt(se.users_period) + " in " + d + " days") +
+      card(fmt(ea.total), "Early access list", "+" + fmt(ea.new_7) + " this week") + "</div>";
+
+    h += section("Guided sessions", '<div class="cm-stats">' + card(fmt(se.period), "Sessions, last " + d + " days") + card(hm(se.secs_period), "Time stretching") + card(hm(se.avg_secs), "Average session") + card(fmt(se.total), "All shared sessions") + "</div>" +
+      "<h3>Sessions per day</h3>" + bars(se.per_day || [], function (r) { return r.n; }, "Sessions per day", function (r) { return short(r.d) + ": " + num(r.n) + " sessions, " + num(r.users) + " people, " + hm(r.secs); }) +
+      "<h3>People active per day</h3>" + bars(se.per_day || [], function (r) { return r.users; }, "People who did a routine each day", function (r) { return short(r.d) + ": " + num(r.users) + " people"; }) +
+      "<h3>Busiest days (last 90 days)</h3>" + table(["Day", "Sessions"], (se.by_weekday || []).map(function (w) { return "<tr><td>" + DOW[num(w.dow)] + "</td><td>" + fmt(w.n) + "</td></tr>"; })));
+
+    h += section("New accounts", bars(a.per_day || [], function (r) { return r.n; }, "New accounts per day", function (r) { return short(r.d) + ": " + num(r.n) + " new"; }) +
+      '<p class="fb-fine">' + fmt(a.new_period) + " new in the last " + d + " days. " + fmt(a.google) + " use Google sign-in.</p>");
+
+    var zones = sc.zones || {}, bands = sc.bands || {};
+    h += section("Mobility scores", '<div class="cm-stats">' + card(fmt(sc.total), "Shared scores") + card(sc.avg == null ? "–" : esc(sc.avg), "Average score") + card(fmt(sc.verified), "Camera verified") + card(fmt(sc.tested_period), "Tested in last " + d + " days") + "</div>" +
+      "<h3>Average by zone</h3><div class=\"cm-zones\">" + ZONES.map(function (z) { var v = zones[z[0]]; if (v == null) return ""; v = Math.round(num(v)); return '<div class="cm-zone"><span><i class="cm-zdot" style="background:' + z[2] + '"></i>' + z[1] + '</span><i><em style="width:' + Math.max(0, Math.min(100, v)) + "%;background:" + z[2] + '"></em></i><b>' + v + "</b></div>"; }).join("") + "</div>" +
+      "<h3>Score spread</h3>" + table(["Score", "People"], [["0_39", "Under 40"], ["40_59", "40 to 59"], ["60_79", "60 to 79"], ["80_100", "80 and over"]].map(function (b) { return "<tr><td>" + b[1] + "</td><td>" + fmt(bands[b[0]]) + "</td></tr>"; })));
+
+    h += section("Community", '<div class="cm-stats">' + card(fmt(c.profiles), "Community members") + card(fmt(c.clubs), "Clubs", fmt(c.clubs_2plus) + " with 2+ members") + card(fmt(c.memberships), "Club memberships") + card(fmt(c.share_time), "Share their time", fmt(c.share_score) + " share their score") + "</div>" +
+      "<h3>Biggest clubs</h3>" + table(["Club", "Members"], (c.top_clubs || []).map(function (t) { return "<tr><td>" + esc(t.name) + "</td><td>" + fmt(t.members) + "</td></tr>"; })));
+
+    h += section("Bugs and ideas", '<div class="cm-stats">' + card(fmt(fb.bugs), "Bug reports") + card(fmt(fb.features), "Feature ideas") + card(fmt(fb.open), "Open or planned", fmt(fb.done) + " done") + card(fmt(fb.votes), "Votes", fmt(fb.comments) + " comments") + "</div>" +
+      "<h3>By section</h3>" + table(["Section", "Posts"], (fb.by_area || []).map(function (x) { return "<tr><td>" + esc(AREA[x.area] || x.area) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
+      '<p class="fb-fine"><a href="feedback.html">Open the board</a></p>');
+
+    h += section("Early access sign-ups", table(["Came from", "Sign-ups"], (ea.by_source || []).map(function (x) { return "<tr><td>" + esc(x.source) + "</td><td>" + fmt(x.n) + "</td></tr>"; })));
+    $("#ad-body").innerHTML = h;
+  }
+
+  sb.auth.getSession().then(function (r) { if (r.data && r.data.session) start(); else showAuth(); });
+})();
