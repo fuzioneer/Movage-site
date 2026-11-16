@@ -81,11 +81,14 @@
   $("#cm-signout").addEventListener("click", function () { doSignOut(); });
 
   /* ---------- profile ---------- */
-  function loadProfile() { return sb.from("profiles").select("nickname, share_time, share_score, created_at").maybeSingle().then(ok); }
+  var PCOLS = "nickname, share_time, share_score, created_at, first_name, last_name, country, age";
+  function loadProfile() { return sb.from("profiles").select(PCOLS).maybeSingle().then(ok); }
   function saveProfile(p) {
     return sb.auth.getUser().then(function (r) {
       var u = ok(r).user; if (!u) throw new Error("sign in first");
-      return sb.from("profiles").upsert({ id: u.id, nickname: p.nickname, share_time: !!p.share_time, share_score: !!p.share_score }).select("nickname, share_time, share_score, created_at").single().then(ok);
+      var row = { id: u.id, nickname: p.nickname, share_time: !!p.share_time, share_score: !!p.share_score };
+      ["first_name", "last_name", "country", "age"].forEach(function (k) { if (p[k] !== undefined) row[k] = p[k]; });
+      return sb.from("profiles").upsert(row).select(PCOLS).single().then(ok);
     });
   }
   function start() {
@@ -96,13 +99,23 @@
       enterMain();
     }, function (e) { showAuth(); msg("#cm-auth-msg", errText(e), true); });
   }
+  /* Countries (ISO 3166 codes), named by the browser in British English, UK first. */
+  var CODES = "GB IE US CA AU NZ AD AE AF AG AI AL AM AO AR AS AT AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BW BY BZ CD CF CG CH CI CK CL CM CN CO CR CU CV CW CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GD GE GF GG GH GI GL GM GN GP GQ GR GT GU GW GY HK HN HR HT HU ID IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NG NI NL NO NP NR NU OM PA PE PF PG PH PK PL PM PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TG TH TJ TL TM TN TO TR TT TV TW TZ UA UG UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW".split(" ");
+  function countryName(c) { try { return new Intl.DisplayNames(["en-GB"], { type: "region" }).of(c) || c; } catch (e) { return c; } }
+  function fillCountries() {
+    var sel = $("#cm-country"); if (sel.options.length) return;
+    var top = CODES.slice(0, 6), rest = CODES.slice(6).map(function (c) { return [c, countryName(c)]; }).sort(function (a, b) { return a[1].localeCompare(b[1], "en-GB"); });
+    sel.innerHTML = '<option value="">Choose your country</option>' + top.map(function (c) { return '<option value="' + c + '">' + esc(countryName(c)) + "</option>"; }).join("") + '<option disabled>──────────</option>' + rest.map(function (x) { return '<option value="' + x[0] + '">' + esc(x[1]) + "</option>"; }).join("");
+  }
   function nickForm(editing) {
+    fillCountries();
+    $("#cm-fn").value = prof && prof.first_name || ""; $("#cm-ln").value = prof && prof.last_name || ""; $("#cm-country").value = prof && prof.country || ""; $("#cm-age").value = prof && prof.age || "";
     show("#cm-nick");
     /* Say which account this is, so someone signed in with a different email (e.g. from the bugs board) can switch. */
     sb.auth.getUser().then(function (r) { var u = r.data && r.data.user, w = $("#cm-nick-who");
       w.innerHTML = editing ? "" : "You're signed in as <strong>" + esc(u && u.email || "") + "</strong>, which doesn't have a Community nickname yet. If you use Movage Community in the app with another email, " + '<button class="fb-link" type="button" id="cm-switch">sign in with that email instead</button>.';
       var sw = $("#cm-switch"); if (sw) sw.addEventListener("click", function () { sb.auth.signOut().then(function () { prof = null; showAuth(); $("#cm-email").focus(); }); });
-    }); $("#cm-nick-h").textContent = editing ? "Change nickname" : "Choose a nickname";
+    }); $("#cm-nick-h").textContent = editing ? "Edit your profile" : "Set up your profile";
     $("#cm-nick-in").value = prof ? prof.nickname : ""; $("#cm-st").checked = prof ? prof.share_time !== false : true; $("#cm-ss").checked = prof ? prof.share_score !== false : true;
     $("#cm-nick-cancel").hidden = !editing; msg("#cm-nick-msg", ""); $("#cm-nick-in").focus();
   }
@@ -111,8 +124,14 @@
     var nk = $("#cm-nick-in").value.trim();
     if (nk.length < 2 || nk.length > 20) { msg("#cm-nick-msg", "Nicknames are 2 to 20 characters.", true); return; }
     if (/[<>]/.test(nk)) { msg("#cm-nick-msg", "Nicknames can't contain < or >.", true); return; }
+    var fn = $("#cm-fn").value.trim(), ln = $("#cm-ln").value.trim(), co = $("#cm-country").value, ag = $("#cm-age").value.trim();
+    if (!fn || fn.length > 40 || /[<>]/.test(fn)) { msg("#cm-nick-msg", "Please enter your first name.", true); $("#cm-fn").focus(); return; }
+    if (!ln || ln.length > 60 || /[<>]/.test(ln)) { msg("#cm-nick-msg", "Please enter your last name.", true); $("#cm-ln").focus(); return; }
+    if (!/^[A-Z]{2}$/.test(co)) { msg("#cm-nick-msg", "Please choose your country.", true); $("#cm-country").focus(); return; }
+    var age = ag === "" ? null : Number(ag);
+    if (age !== null && !(Number.isInteger(age) && age >= 13 && age <= 120)) { msg("#cm-nick-msg", "Age should be a whole number from 13 to 120, or leave it blank.", true); $("#cm-age").focus(); return; }
     var first = !prof, b = $("#cm-nick-form button[type=submit]"); b.disabled = true;
-    saveProfile({ nickname: nk, share_time: $("#cm-st").checked, share_score: $("#cm-ss").checked }).then(function (p) {
+    saveProfile({ nickname: nk, share_time: $("#cm-st").checked, share_score: $("#cm-ss").checked, first_name: fn, last_name: ln, country: co, age: age }).then(function (p) {
       b.disabled = false; prof = p; enterMain(); if (first) msg("#cm-list-msg", "Welcome to the Movage community.");
     }, function (er) { b.disabled = false; msg("#cm-nick-msg", errText(er), true); });
   });
@@ -209,13 +228,20 @@
   /* ---------- clubs and boards ---------- */
   function loadComms() { return rpc("my_communities").then(function (c) { comms = c || []; if (scope && !comms.some(function (x) { return x.id === scope; })) scope = null; }, function () {}); }
   function enterMain() {
-    show("#cm-app"); $("#cm-me").textContent = prof.nickname; $("#cm-nickname").textContent = prof.nickname;
+    show("#cm-app"); $("#cm-me").textContent = prof.nickname; drawDetails();
     $("#cm-p-st").checked = !!prof.share_time; $("#cm-p-ss").checked = !!prof.share_score;
     try { localStorage.setItem("movage-nick", prof.nickname); } catch (e) {} if (window.MOVAGE_FOOT) MOVAGE_FOOT();
     loadComms().then(function () {
       if (pendingJoin) { var c = pendingJoin; pendingJoin = null; $("#cm-joinbox").hidden = false; $("#cm-join-code").value = c; return join(c); }
       if (!goHash()) refresh();
     });
+  }
+  function drawDetails() {
+    var p = prof || {}, missing = !p.first_name || !p.last_name || !p.country;
+    $("#cm-details").innerHTML = "<dt>Nickname</dt><dd>" + esc(p.nickname) + "</dd><dt>Name</dt><dd>" + (p.first_name || p.last_name ? esc([p.first_name, p.last_name].filter(Boolean).join(" ")) : "Not set") + "</dd>" +
+      "<dt>Country</dt><dd>" + (p.country ? esc(countryName(p.country)) : "Not set") + "</dd><dt>Age</dt><dd>" + (p.age ? esc(p.age) : "Not given") + "</dd>";
+    $("#cm-nick-edit").textContent = missing ? "Add your name and country" : "Edit profile";
+    msg("#cm-prof-msg", missing ? "Your profile is missing your name or country. Add them with the link above." : "");
   }
   /* Links from the account menu in the header: #boards, #mine, #clubs, #profile and #signout. */
   function goHash() {

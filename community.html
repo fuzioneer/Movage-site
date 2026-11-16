@@ -13,7 +13,7 @@
 <link rel="manifest" href="site.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/site.css?v=18">
+<link rel="stylesheet" href="assets/site.css?v=19">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -47,10 +47,19 @@
 <section id="cm-nick" class="box" hidden>
   <h2 class="fb-h" id="cm-nick-h">Choose a nickname</h2>
   <p id="cm-nick-who" class="cm-who"></p>
-  <p>This is the only name other people will see on the leaderboards.</p>
+  <p>Your nickname is the only thing other people see on the leaderboards.</p>
   <form id="cm-nick-form" novalidate>
-    <label class="fb-l" for="cm-nick-in">Nickname</label>
+    <label class="fb-l" for="cm-nick-in">Nickname <span class="fb-opt">(shown on leaderboards)</span></label>
     <input class="fb-in" id="cm-nick-in" maxlength="20" autocomplete="nickname" placeholder="2 to 20 characters" required>
+    <div class="cm-two">
+      <div><label class="fb-l" for="cm-fn">First name</label><input class="fb-in" id="cm-fn" maxlength="40" autocomplete="given-name" autocapitalize="words" required></div>
+      <div><label class="fb-l" for="cm-ln">Last name</label><input class="fb-in" id="cm-ln" maxlength="60" autocomplete="family-name" autocapitalize="words" required></div>
+    </div>
+    <div class="cm-two">
+      <div><label class="fb-l" for="cm-country">Country</label><select class="fb-in" id="cm-country" autocomplete="country" required></select></div>
+      <div><label class="fb-l" for="cm-age">Age <span class="fb-opt">(optional)</span></label><input class="fb-in" id="cm-age" type="number" inputmode="numeric" min="13" max="120" placeholder="e.g. 34"></div>
+    </div>
+    <p class="fb-fine">Your name, country and age are private. Nobody else on Movage sees them; leaderboards only ever show your nickname.</p>
     <label class="cm-check"><input type="checkbox" id="cm-st" checked> Show my mobility time on leaderboards</label>
     <label class="cm-check"><input type="checkbox" id="cm-ss" checked> Show my mobility score on leaderboards</label>
     <p class="fb-msg" id="cm-nick-msg" role="status" aria-live="polite"></p>
@@ -114,7 +123,8 @@
 
   <h2 id="cm-profile">Your profile</h2>
   <div class="box cm-prof">
-    <p>Your nickname is <strong id="cm-nickname"></strong>. <button class="fb-link" type="button" id="cm-nick-edit">Change nickname</button></p>
+    <dl class="cm-acct" id="cm-details"></dl>
+    <p><button class="fb-link" type="button" id="cm-nick-edit">Edit profile</button></p>
     <label class="cm-check"><input type="checkbox" id="cm-p-st"> Show my mobility time</label>
     <label class="cm-check"><input type="checkbox" id="cm-p-ss"> Show my mobility score</label>
     <p class="fb-fine">Your time and score come from the Movage app: finish a guided routine or save a mobility test there and it appears here.</p>
@@ -129,7 +139,7 @@
 
 <footer class="foot"><div class="wrap"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"><nav aria-label="Footer"><a class="soc" href="https://www.instagram.com/movageapp/" rel="noopener" target="_blank" aria-label="Movage on Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a><a class="soc" href="https://www.youtube.com/@movageapp" rel="noopener" target="_blank" aria-label="Movage on YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8z"/><path fill="var(--bg, #0f1412)" d="M9.8 15.1 15.6 12 9.8 8.9z"/></svg><span>YouTube</span></a><a href="community.html" aria-current="page">Community</a><a href="support.html">Support</a><a href="feedback.html">Bugs and ideas</a><a href="privacy.html">Privacy</a><a href="delete-account.html">Delete your account</a></nav><div class="fine"><span>&copy; 2026 Movage. All rights reserved.</span><span class="tag">Joint Venture</span></div></div></footer>
 <script src="assets/supabase.js"></script>
-<script src="assets/community.js?v=10"></script>
+<script src="assets/community.js?v=11"></script>
 <script src="assets/foot.js?v=2" defer></script>
 </body>
 </html>
