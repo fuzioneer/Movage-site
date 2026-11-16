@@ -402,3 +402,19 @@ select.fb-in { min-height: 50px; appearance: auto; }
 .cm-mlevel b { color: var(--text); font-size: 14px; }
 .cm-zone > span { display: flex; align-items: center; gap: 8px; }
 .cm-zdot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+/* Front page: quick and full test */
+.testopts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 56px; }
+.topt { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 32px; }
+.topt.full { border-color: rgba(70,179,159,.45); background: linear-gradient(180deg, var(--tint), var(--card) 60%); }
+.topt-tag { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); }
+.topt-big { margin-top: 10px; font-size: 20px; color: var(--text-2); }
+.topt-big b { font-size: 40px; color: var(--text); font-weight: 800; }
+.topt-big span { margin: 0 6px; }
+.topt > p:not(.topt-tag):not(.topt-big):not(.topt-best) { color: var(--text-3); margin-top: 14px; font-size: 16px; }
+.topt ul { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.topt li { position: relative; padding-left: 26px; color: var(--text-3); font-size: 15.5px; }
+.topt li::before { content: ""; position: absolute; left: 2px; top: 6px; width: 12px; height: 7px; border-left: 2.5px solid var(--teal); border-bottom: 2.5px solid var(--teal); transform: rotate(-45deg); }
+.topt-best { margin-top: 18px; font-weight: 700; color: var(--text); }
+.testwhy { max-width: 760px; margin: 32px auto 0; text-align: center; color: var(--text-3); font-size: 16.5px; }
+@media (max-width: 760px) { .testopts { grid-template-columns: 1fr; } .topt { padding: 26px; } }
