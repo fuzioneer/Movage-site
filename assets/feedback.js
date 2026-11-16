@@ -80,7 +80,7 @@
   var query = "";
   function qWords() { return query.toLowerCase().split(/\s+/).filter(Boolean); }
   function searching() { return query.replace(/\s+/g, "").length >= 3; }
-  function matches(i) { var hay = (i.title + " " + i.body + " " + (i.author || "")).toLowerCase(); return qWords().every(function (w) { return hay.indexOf(w) >= 0; }); }
+  function matches(i) { if (i.kind === "test" && !admin) return false; var hay = (i.title + " " + i.body + " " + (i.author || "")).toLowerCase(); return qWords().every(function (w) { return hay.indexOf(w) >= 0; }); }
   function mark(text) {
     var out = esc(text); if (!searching()) return out;
     qWords().forEach(function (w) { var re = new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); out = out.replace(/(<[^>]*>)|([^<]+)/g, function (m, tag, txt) { return tag || txt.replace(re, "<mark>$1</mark>"); }); });
