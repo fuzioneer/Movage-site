@@ -96,7 +96,12 @@
     }, function (e) { showAuth(); msg("#cm-auth-msg", errText(e), true); });
   }
   function nickForm(editing) {
-    show("#cm-nick"); $("#cm-nick-h").textContent = editing ? "Change nickname" : "Choose a nickname";
+    show("#cm-nick");
+    /* Say which account this is, so someone signed in with a different email (e.g. from the bugs board) can switch. */
+    sb.auth.getUser().then(function (r) { var u = r.data && r.data.user, w = $("#cm-nick-who");
+      w.innerHTML = editing ? "" : "You're signed in as <strong>" + esc(u && u.email || "") + "</strong>, which doesn't have a Community nickname yet. If you use Movage Community in the app with another email, " + '<button class="fb-link" type="button" id="cm-switch">sign in with that email instead</button>.';
+      var sw = $("#cm-switch"); if (sw) sw.addEventListener("click", function () { sb.auth.signOut().then(function () { prof = null; showAuth(); $("#cm-email").focus(); }); });
+    }); $("#cm-nick-h").textContent = editing ? "Change nickname" : "Choose a nickname";
     $("#cm-nick-in").value = prof ? prof.nickname : ""; $("#cm-st").checked = prof ? prof.share_time !== false : true; $("#cm-ss").checked = prof ? prof.share_score !== false : true;
     $("#cm-nick-cancel").hidden = !editing; msg("#cm-nick-msg", ""); $("#cm-nick-in").focus();
   }

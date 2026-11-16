@@ -375,3 +375,8 @@ select.fb-in { min-height: 50px; appearance: auto; }
 .foot .soc { display: inline-flex; align-items: center; gap: 8px; }
 .foot .soc svg { width: 20px; height: 20px; flex: none; }
 .cm-ver { display: flex; align-items: center; gap: 4px; margin-top: 6px !important; color: var(--teal) !important; font-size: 15px !important; }
+
+/* The hidden attribute always wins over display rules like .btn { display: inline-flex } */
+[hidden] { display: none !important; }
+.cm-who { background: var(--tint); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+.cm-who:empty { display: none; }
