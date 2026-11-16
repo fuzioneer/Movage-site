@@ -11,7 +11,7 @@
 <link rel="manifest" href="site.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/site.css?v=7">
+<link rel="stylesheet" href="assets/site.css?v=8">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -52,6 +52,14 @@
     <button class="btn btn-ghost" type="button" data-new="feature">Suggest a feature</button>
     <button class="btn btn-ghost fb-admin" type="button" data-new="test" hidden>Log something to test</button>
   </div>
+
+  <div class="fb-search" role="search">
+    <label class="sr" for="fb-q">Search bugs and ideas</label>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="fb-q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Search bugs and ideas, e.g. strava, camera, video">
+    <button type="button" class="fb-qx" id="fb-qx" aria-label="Clear search" hidden>&times;</button>
+  </div>
+  <p class="fb-msg fb-qmsg" id="fb-q-msg" role="status" aria-live="polite"></p>
 
   <form id="fb-new" class="box fb-new" novalidate hidden>
     <h2 class="fb-h" id="fb-new-h">Report a bug</h2>
@@ -108,6 +116,6 @@
 
 <footer class="foot"><div class="wrap"><img src="assets/logo-h-dark.png" alt="Movage" width="441" height="150"><nav aria-label="Footer"><a href="https://www.instagram.com/movageapp/" rel="noopener" target="_blank">Instagram</a><a href="support.html">Support</a><a href="feedback.html" aria-current="page">Bugs and ideas</a><a href="privacy.html">Privacy</a><a href="delete-account.html">Delete your account</a></nav><div class="fine"><span>&copy; 2026 Movage. All rights reserved.</span><span class="tag">Joint Venture</span></div></div></footer>
 <script src="assets/supabase.js"></script>
-<script src="assets/feedback.js?v=3"></script>
+<script src="assets/feedback.js?v=4"></script>
 </body>
 </html>

@@ -296,3 +296,15 @@ select.fb-in { min-height: 50px; appearance: auto; }
 .fb-reply .btn { justify-self: start; min-height: 42px; }
 .fb-empty { padding: 28px 20px; text-align: center; color: var(--text-2); background: var(--card); border: 1px dashed var(--line); border-radius: 18px; }
 @media (max-width: 520px) { .fb-item { padding: 14px; gap: 12px; } .fb-vote { width: 50px; min-height: 58px; } .fb-filters { flex-direction: column; align-items: stretch; } .fb-sels .fb-sel { flex: 1; } }
+
+/* Bugs and ideas: live search */
+.fb-search { position: relative; margin: 14px 0 4px; }
+.fb-search svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; opacity: .6; pointer-events: none; }
+.fb-search input { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 12px 42px 12px 42px; border-radius: 12px; border: 1px solid rgba(127,127,127,.35); background: rgba(127,127,127,.08); color: inherit; }
+.fb-search input:focus { outline: 2px solid #46b39f; outline-offset: 1px; }
+.fb-search input::-webkit-search-cancel-button { display: none; }
+.fb-qx { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(127,127,127,.2); color: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.fb-qmsg:empty { display: none; }
+.fb-filters.dim { opacity: .45; }
+.fb-snip { margin: 4px 0 2px; font-size: 14px; opacity: .8; }
+.fb-list mark { background: rgba(70,179,159,.35); color: inherit; border-radius: 3px; padding: 0 1px; }

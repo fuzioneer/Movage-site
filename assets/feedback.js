@@ -75,10 +75,29 @@
       return true;
     }).sort(function (a, b) { return view.sort === "top" ? (b.votes - a.votes) || (new Date(b.created_at) - new Date(a.created_at)) : new Date(b.created_at) - new Date(a.created_at); });
   }
+  /* Live search: from 3 characters, every word must appear in the title, description or poster's name.
+     Searches all posts, whatever the filters are set to, so you can check something isn't already reported. */
+  var query = "";
+  function qWords() { return query.toLowerCase().split(/\s+/).filter(Boolean); }
+  function searching() { return query.replace(/\s+/g, "").length >= 3; }
+  function matches(i) { var hay = (i.title + " " + i.body + " " + (i.author || "")).toLowerCase(); return qWords().every(function (w) { return hay.indexOf(w) >= 0; }); }
+  function mark(text) {
+    var out = esc(text); if (!searching()) return out;
+    qWords().forEach(function (w) { var re = new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); out = out.replace(/(<[^>]*>)|([^<]+)/g, function (m, tag, txt) { return tag || txt.replace(re, "<mark>$1</mark>"); }); });
+    return out;
+  }
+  function snippet(body) {
+    var b = String(body || ""), lo = b.toLowerCase(), at = -1;
+    qWords().forEach(function (w) { var k = lo.indexOf(w); if (k >= 0 && (at < 0 || k < at)) at = k; });
+    if (at < 0) return "";
+    var s = Math.max(0, at - 50), e = Math.min(b.length, at + 110);
+    return '<p class="fb-snip">' + (s > 0 ? "..." : "") + mark(b.slice(s, e)) + (e < b.length ? "..." : "") + "</p>";
+  }
   function render() {
-    var list = shown();
+    var list = searching() ? items.filter(matches).sort(function (a, b) { return (b.votes - a.votes) || (new Date(b.created_at) - new Date(a.created_at)); }) : shown();
+    msg("#fb-q-msg", searching() ? (list.length ? list.length + (list.length === 1 ? " match" : " matches") + ' for "' + query.trim() + '" across all posts' : "") : "");
     if (!items.length) { $("#fb-list").innerHTML = '<li class="fb-empty">Nothing here yet. Be the first to report a bug or suggest a feature.</li>'; return; }
-    if (!list.length) { $("#fb-list").innerHTML = '<li class="fb-empty">Nothing matches these filters.</li>'; return; }
+    if (!list.length) { $("#fb-list").innerHTML = searching() ? '<li class="fb-empty">No bugs or ideas match "' + esc(query.trim()) + '". If it\'s new, report it above.</li>' : '<li class="fb-empty">Nothing matches these filters.</li>'; return; }
     $("#fb-list").innerHTML = list.map(card).join("");
     if (openId) { var it = byId(openId); if (it) loadComments(it); }
   }
@@ -93,7 +112,8 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><span>' + i.votes + "</span></button>") +
       '<div class="fb-main">' +
         '<div class="fb-tags"><span class="fb-kind ' + i.kind + '">' + (i.kind === "bug" ? "Bug" : i.kind === "test" ? "Test (team only)" : "Feature") + '</span><span class="fb-area">' + AREA[i.area || "general"] + '</span><span class="fb-status s-' + i.status + '">' + STATUS[i.status] + "</span></div>" +
-        '<h3 class="fb-title"><button type="button" class="fb-open" data-act="open" data-id="' + i.id + '" aria-expanded="' + open + '">' + esc(i.title) + "</button></h3>" +
+        '<h3 class="fb-title"><button type="button" class="fb-open" data-act="open" data-id="' + i.id + '" aria-expanded="' + open + '">' + mark(i.title) + "</button></h3>" +
+        (searching() && !open ? snippet(i.body) : "") +
         '<p class="fb-meta">' + esc(i.author) + " &middot; " + when(i.created_at) + " &middot; " + i.comments + (i.comments === 1 ? " comment" : " comments") + "</p>" +
         (open ? '<div class="fb-detail"><p class="fb-body">' + esc(i.body) + "</p>" +
           (i.device ? '<p class="fb-dev"><strong>Device:</strong> ' + esc(i.device) + "</p>" : "") +
@@ -152,6 +172,13 @@
       render();
     });
   });
+  var qt = null;
+  $("#fb-q").addEventListener("input", function () {
+    var v = this.value; $("#fb-qx").hidden = !v; clearTimeout(qt);
+    qt = setTimeout(function () { var was = searching(); query = v; document.querySelector(".fb-filters").classList.toggle("dim", searching()); if (searching() || was) render(); }, 120);
+  });
+  $("#fb-qx").addEventListener("click", function () { $("#fb-q").value = ""; this.hidden = true; query = ""; document.querySelector(".fb-filters").classList.remove("dim"); render(); $("#fb-q").focus(); });
+  $("#fb-q").addEventListener("keydown", function (e) { if (e.key === "Escape") $("#fb-qx").click(); });
   $("#fb-sec").addEventListener("change", function () { view.area = this.value; render(); });
   $("#fb-status").addEventListener("change", function () { view.status = this.value; render(); });
   $("#fb-sort").addEventListener("change", function () { view.sort = this.value; render(); });
