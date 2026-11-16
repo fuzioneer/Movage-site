@@ -1,6 +1,6 @@
 /* Movage visitor counter. Cookie free: it sets no cookies and stores nothing on your device.
-   It sends the page address, the site you came from (domain only), any campaign tag and your time zone
-   (to estimate the country). Signed-in team members, anyone who opts out on the privacy page and
+   It sends the page address, the site you came from (domain only), any campaign tag, your time zone
+   (to estimate the country) and your screen width (only to tell laptops from large monitors; never stored). Signed-in team members, anyone who opts out on the privacy page and
    browsers with Do Not Track or Global Privacy Control switched on are not counted. */
 (function () {
   "use strict";
@@ -24,7 +24,8 @@
   try { if (document.referrer) { var h = new URL(document.referrer).hostname; if (h !== location.hostname) ref = h; } } catch (e) {}
   var q = new URLSearchParams(location.search), src = q.get("utm_source") || q.get("ref") || "";
   var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
-  send({ r: ref, s: src.slice(0, 60), tz: tz });
+  var w = 0; try { w = Math.round((screen.width || 0) / 10) * 10; } catch (e) {}
+  send({ r: ref, s: src.slice(0, 60), tz: tz, w: w >= 100 ? String(w) : "" });
 
   /* Time on page: only counts time while the tab is visible, sent once when you leave. */
   var shown = document.visibilityState === "visible" ? Date.now() : 0, total = 0, sent = false;

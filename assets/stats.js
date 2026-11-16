@@ -58,9 +58,10 @@
   function load() {
     msg("#ad-msg", "Loading..."); $("#ad-body").setAttribute("aria-busy", "true");
     var days = Number($("#ad-days").value);
-    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days }), sb.rpc("admin_site_stats", { p_days: days }), sb.rpc("admin_demographics", { p_days: days })]).then(function (res) {
+    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days }), sb.rpc("admin_site_stats", { p_days: days }), sb.rpc("admin_demographics", { p_days: days }), sb.rpc("admin_site_devices", { p_days: days })]).then(function (res) {
       $("#ad-body").removeAttribute("aria-busy");
-      var r = res[0], t = res[1], w = res[2], g = res[3];
+      var r = res[0], t = res[1], w = res[2], g = res[3], dv = res[4];
+      if (!w.error && w.data && !dv.error) w.data.devtypes = dv.data || [];
       if (r.error) { msg("#ad-msg", errText(r.error), true); return; }
       msg("#ad-msg", "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ".");
       draw(r.data || {}, t.error ? null : (t.data || []), w.error ? null : (w.data || {}), g.error ? null : (g.data || {}));
@@ -71,10 +72,17 @@
   function jump() { var nav = $("#ad-jump"); if (!nav) return; nav.innerHTML = Array.prototype.map.call(document.querySelectorAll(".ad-sec[id]"), function (s) { return '<a class="fb-chip" href="#' + s.id + '">' + esc(s.querySelector("h2").textContent) + "</a>"; }).join(""); }
 
   function mmss(s) { s = Math.round(num(s)); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s"; }
-  var DEV = { mobile: "Phone", tablet: "Tablet", desktop: "Computer", unknown: "Unknown" };
+  var DEV = { mobile: "Smartphone", tablet: "Tablet", laptop: "Laptop", monitor: "Desktop or large monitor", desktop: "Computer (before 16 Nov)", unknown: "Unknown" };
   function share(rows, key, label) {
     var tot = rows.reduce(function (a, x) { return a + num(x.n); }, 0) || 1;
     return '<div class="ad-share">' + rows.map(function (x) { var p = Math.round(num(x.n) / tot * 100); return '<div class="ad-shr"><span>' + label(x[key]) + '</span><i><em style="width:' + p + '%"></em></i><b>' + p + "%</b></div>"; }).join("") + "</div>";
+  }
+  function devTypes(rows) {
+    var tot = rows.reduce(function (a, x) { return a + num(x.visits); }, 0) || 1;
+    return '<div class="ad-scroll">' + table(["Device", "Visits", "Share", "Pages per visit", "Left after one page", "Avg time on a page"], rows.map(function (x) {
+      var p = Math.round(num(x.visits) / tot * 100);
+      return "<tr><td>" + esc(DEV[x.k] || x.k) + '<i class="ad-mini"><em style="width:' + p + '%"></em></i></td><td>' + fmt(x.visits) + "</td><td>" + p + "%</td><td>" + esc(x.per_visit == null ? "–" : x.per_visit) + "</td><td>" + (x.bounce_pct == null ? "–" : num(x.bounce_pct) + "%") + "</td><td>" + (x.avg_secs == null ? "–" : mmss(x.avg_secs)) + "</td></tr>";
+    })) + '</div><p class="fb-fine">Laptops and large monitors are told apart by screen width (wider than 1,728 points counts as a large monitor). The screen width itself is never stored.</p>';
   }
   function pageName(p) { var m = { "/": "Home", "/community.html": "Community", "/feedback.html": "Bugs and ideas", "/support.html": "Support", "/privacy.html": "Privacy", "/delete-account.html": "Delete account", "/mobility-test.html": "Mobility test guide", "/hip-mobility-exercises.html": "Hip mobility exercises", "/stretching-routines-for-runners.html": "Stretches for runners" }; return m[p] ? esc(m[p]) + ' <small class="ad-sub">' + esc(p) + "</small>" : esc(p); }
   function country(c) { if (c === "??") return '<span class="ad-flag none"></span>Unknown'; var n = c; try { n = new Intl.DisplayNames(["en-GB"], { type: "region" }).of(c) || c; } catch (e) {} return flag(c) + esc(n); }
@@ -90,7 +98,8 @@
       ((w.srcs || []).length ? "<h3>Campaign tags</h3>" + table(["utm_source", "Visits"], w.srcs.map(function (x) { return "<tr><td>" + esc(x.src) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) : "") +
       "<h3>Landing pages</h3>" + table(["First page seen", "Visits"], (w.entry || []).map(function (x) { return "<tr><td>" + pageName(x.path) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
       "<h3>Countries</h3>" + table(["Country", "Visits"], (w.countries || []).map(function (x) { return "<tr><td>" + country(x.country) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
-      '<div class="ad-cols"><div><h3>Devices</h3>' + share(w.devices || [], "k", function (k) { return esc(DEV[k] || k); }) + "</div>" +
+      "<h3>Device types</h3>" + devTypes(w.devtypes || []) +
+      '<div class="ad-cols">' +
       "<div><h3>Browsers</h3>" + share(w.browsers || [], "k", esc) + "</div>" +
       "<div><h3>Systems</h3>" + share(w.oses || [], "k", esc) + "</div></div>" +
       "<h3>Time of day (UK)</h3>" + '<div class="cm-bars ad-bars" role="img" aria-label="Page views by hour">' + (function () { var hs = w.hours || [], mx = Math.max.apply(null, hs.map(function (x) { return num(x.n); }).concat([1])); return hs.map(function (x) { var v = num(x.n); return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(5, Math.round(v / mx * 100)) : 2) + '%" title="' + x.h + ":00, " + v + ' views"></span>'; }).join(""); })() + '</div><div class="ad-axis"><span>00:00</span><span>12:00</span><span>23:00</span></div>', "ad-web");
