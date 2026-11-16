@@ -145,20 +145,47 @@
   function dateStr(d) { return new Date(d + (String(d).length === 10 ? "T12:00:00" : "")).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
   function loadMine() {
     $("#cm-stats").innerHTML = '<p class="cm-empty">Loading...</p>';
-    var since = new Date(); since.setDate(since.getDate() - 29); var from = iso(since);
+    var since = new Date(); since.setDate(since.getDate() - 29); var from = iso(since), m1 = range("month")[0]; if (m1 < from) from = m1;
     Promise.all([
       sb.from("sessions").select("local_date, secs").gte("local_date", from).order("local_date").then(ok),
       sb.from("scores").select("overall, zones, verified, tested_on").maybeSingle().then(ok),
       sb.auth.getUser().then(function (r) { return ok(r).user; })
     ]).then(function (res) { drawMine(res[0] || [], res[1], res[2]); }, function (e) { $("#cm-stats").innerHTML = ""; msg("#cm-list-msg", errText(e), true); });
   }
+  /* Monthly challenge, the same as in the app: medals for sessions in a calendar month, up to two a day counting. */
+  var MEDALS = [["bronze", 4, "Bronze", "#c07a3a"], ["silver", 8, "Silver", "#9aa4ad"], ["gold", 12, "Gold", "#d4a21f"], ["platinum", 20, "Platinum", "#5fb4c8"]];
+  function medalSVG(md, size) {
+    var col = md ? md[3] : "rgba(127,127,127,.35)", lab = md ? md[2] + " medal" : "No medal yet";
+    return '<svg class="cm-medal" width="' + size + '" height="' + size + '" viewBox="0 0 48 48" role="img" aria-label="' + lab + '"><path d="M15 3h7l4 13h-7zM33 3h-7l-4 13h7z" fill="' + col + '" opacity=".55"/>' +
+      '<circle cx="24" cy="30" r="14" fill="' + col + '"/><circle cx="24" cy="30" r="10.5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/>' +
+      (md ? '<path d="M24 23.5l2 4.1 4.5.6-3.3 3.1.8 4.5-4-2.2-4 2.2.8-4.5-3.3-3.1 4.5-.6z" fill="#fff"/>' : "") + "</svg>";
+  }
+  function drawChallenge(rows) {
+    var mStart = range("month")[0], per = {};
+    rows.forEach(function (r) { if (r.local_date >= mStart) per[r.local_date] = Math.min(2, (per[r.local_date] || 0) + 1); });
+    var n = Object.keys(per).reduce(function (t, d) { return t + per[d]; }, 0), md = null, nx = null, top = MEDALS[MEDALS.length - 1][1];
+    MEDALS.forEach(function (x) { if (n >= x[1]) md = x; else if (!nx) nx = x; });
+    var now = new Date(), left = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+    var month = now.toLocaleDateString("en-GB", { month: "long" });
+    var line = nx ? (nx[1] - n) + " more for " + nx[2] + " &middot; " + left + (left === 1 ? " day" : " days") + " left" : "Platinum reached. Top level for this month!";
+    var marks = MEDALS.map(function (x) { return '<span class="cm-mark' + (n >= x[1] ? " got" : "") + '" style="left:' + (x[1] / top * 100) + "%;--mc:" + x[3] + '" title="' + x[2] + ": " + x[1] + ' sessions"><i></i><em>' + x[1] + "</em></span>"; }).join("");
+    $("#cm-chal").innerHTML = '<div class="cm-chalhead">' + medalSVG(md, 56) + '<div><h2 class="fb-h">' + month + " challenge</h2><p>" + (md ? md[2] + " &middot; " : "") + n + (n === 1 ? " session" : " sessions") + " this month</p></div></div>" +
+      '<div class="cm-chbar" role="progressbar" aria-valuemin="0" aria-valuemax="' + top + '" aria-valuenow="' + Math.min(n, top) + '" aria-label="Monthly challenge progress"><div class="cm-chfill" style="width:' + Math.min(100, n / top * 100) + "%;background:" + (md ? md[3] : "var(--teal)") + '"></div>' + marks + "</div>" +
+      '<p class="cm-chline">' + line + "</p>" +
+      '<div class="cm-medals">' + MEDALS.map(function (x) { return '<div class="cm-mlevel' + (n >= x[1] ? " got" : "") + '">' + medalSVG(x, 30) + "<span><b>" + x[2] + "</b>" + x[1] + " sessions</span></div>"; }).join("") + "</div>" +
+      '<p class="fb-fine">Earn a medal each month for how often you do your mobility in the app. Up to two sessions a day count.</p>';
+  }
   function drawMine(rows, sc, user) {
+    drawChallenge(rows);
+    var d30 = new Date(); d30.setDate(d30.getDate() - 29); var cut = iso(d30), mo1 = range("month")[0];
     var byDay = {}; rows.forEach(function (r) { byDay[r.local_date] = (byDay[r.local_date] || 0) + Number(r.secs || 0); });
+    var tmAll = 0; rows.forEach(function (r) { if (r.local_date >= mo1) tmAll += Number(r.secs || 0); });
+    rows = rows.filter(function (r) { return r.local_date >= cut; });
     var wk = range("week")[0], mo = range("month")[0], tw = 0, tm = 0, t30 = 0, days = [], streak = 0;
     for (var i = 29; i >= 0; i--) { var d = new Date(); d.setDate(d.getDate() - i); var k = iso(d), v = byDay[k] || 0; days.push([k, v, d]); t30 += v; if (k >= wk) tw += v; if (k >= mo) tm += v; }
     for (var j = days.length - 1; j >= 0; j--) { if (days[j][1] > 0) streak++; else if (j === days.length - 1) continue; else break; }
     var stat = function (val, lab) { return '<div class="cm-stat"><b>' + val + "</b><span>" + lab + "</span></div>"; };
-    $("#cm-stats").innerHTML = stat(hm(tw), "This week") + stat(hm(tm), "This month") + stat(String(rows.length), rows.length === 1 ? "Session, 30 days" : "Sessions, 30 days") + stat(String(streak), streak === 1 ? "Day streak" : "Day streak");
+    $("#cm-stats").innerHTML = stat(hm(tw), "This week") + stat(hm(tmAll), "This month") + stat(String(rows.length), rows.length === 1 ? "Session, 30 days" : "Sessions, 30 days") + stat(String(streak), streak === 1 ? "Day streak" : "Day streak");
     var max = Math.max.apply(null, days.map(function (x) { return x[1]; }).concat([600]));
     $("#cm-bars").innerHTML = days.map(function (x) { var h = x[1] ? Math.max(6, Math.round(x[1] / max * 100)) : 2; return '<span class="cm-bar' + (x[1] ? " on" : "") + '" style="height:' + h + '%" title="' + esc(x[2].toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ": " + (x[1] ? hm(x[1]) : "rest day")) + '"></span>'; }).join("");
     $("#cm-bars").setAttribute("aria-label", "Daily mobility time over the last 30 days, " + hm(t30) + " in total.");

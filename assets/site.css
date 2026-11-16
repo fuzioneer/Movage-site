@@ -380,3 +380,23 @@ select.fb-in { min-height: 50px; appearance: auto; }
 [hidden] { display: none !important; }
 .cm-who { background: var(--tint); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
 .cm-who:empty { display: none; }
+
+/* Community: monthly challenge (same medals as the app) */
+.cm-chal { margin-top: 16px; }
+.cm-chal:empty { display: none; }
+.cm-chalhead { display: flex; align-items: center; gap: 14px; }
+.cm-chalhead p { margin: 2px 0 0 !important; color: var(--text-2) !important; }
+.cm-medal { flex: none; }
+.cm-chbar { position: relative; height: 10px; background: rgba(127,127,127,.25); border-radius: 6px; margin: 22px 8px 0; }
+.cm-chfill { height: 100%; border-radius: 6px; transition: width .4s; }
+.cm-mark { position: absolute; top: -3px; transform: translateX(-50%); }
+.cm-mark i { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--card); border: 3px solid var(--mc); box-sizing: border-box; }
+.cm-mark.got i { background: var(--mc); }
+.cm-mark em { position: absolute; top: 19px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 12px; font-weight: 700; color: var(--text-2); }
+.cm-chline { margin-top: 30px !important; color: var(--text-3) !important; }
+.cm-medals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+@media (min-width: 640px) { .cm-medals { grid-template-columns: repeat(4, 1fr); } }
+.cm-mlevel { display: flex; align-items: center; gap: 8px; opacity: .55; }
+.cm-mlevel.got { opacity: 1; }
+.cm-mlevel span { display: flex; flex-direction: column; font-size: 13px; color: var(--text-2); }
+.cm-mlevel b { color: var(--text); font-size: 14px; }
