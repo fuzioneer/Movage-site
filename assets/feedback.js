@@ -6,7 +6,7 @@
   "use strict";
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
-  var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", general: "Something else" };
+  var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", website: "Website", general: "Something else" };
   var STATUS = { open: "Open", planned: "Planned", in_progress: "In progress", done: "Done", wont_fix: "Won't do" };
   var $ = function (s) { return document.querySelector(s); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
