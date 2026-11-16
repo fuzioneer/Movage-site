@@ -102,7 +102,7 @@
       '<div class="ad-cols">' +
       "<div><h3>Browsers</h3>" + share(w.browsers || [], "k", esc) + "</div>" +
       "<div><h3>Systems</h3>" + share(w.oses || [], "k", esc) + "</div></div>" +
-      "<h3>Time of day (UK)</h3>" + '<div class="cm-bars ad-bars" role="img" aria-label="Page views by hour">' + (function () { var hs = w.hours || [], mx = Math.max.apply(null, hs.map(function (x) { return num(x.n); }).concat([1])); return hs.map(function (x) { var v = num(x.n); return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(5, Math.round(v / mx * 100)) : 2) + '%" title="' + x.h + ":00, " + v + ' views"></span>'; }).join(""); })() + '</div><div class="ad-axis"><span>00:00</span><span>12:00</span><span>23:00</span></div>', "ad-web");
+      "<h3>Time of day (UK)</h3>" + chart((w.hours || []).map(function (x) { return { v: num(x.n), tip: x.h + ":00, " + num(x.n) + " views" }; }), "Page views by hour (UK time)", ["00:00", "12:00", "23:00"]), "ad-web");
   }
   $("#ad-days").addEventListener("change", load);
   $("#ad-refresh").addEventListener("click", load);
@@ -114,10 +114,19 @@
     return '<img class="ad-flag" src="assets/flags/' + c.toLowerCase() + '.svg" width="22" height="16" alt="' + esc(name) + '" title="' + esc(name) + '" loading="lazy">';
   }
   function card(v, label, sub) { return '<div class="cm-stat"><b>' + v + "</b><span>" + label + "</span>" + (sub ? '<small class="ad-sub">' + sub + "</small>" : "") + "</div>"; }
+  /* Rounded top for a chart's vertical scale: 2, 4, 10, 20, 40, 100 ... at or above the biggest value, so the middle line is a whole number. */
+  function niceMax(m) { m = Math.max(2, m); var p = Math.pow(10, Math.floor(Math.log10(m))), n = m / p; return (n <= 2 ? 2 : n <= 4 ? 4 : 10) * p; }
+  /* Bar chart with a vertical scale (top, middle, 0) and light grid lines. bars: [{v, tip}], xlabels: labels under the chart. */
+  function chart(items, label, xlabels) {
+    var top = niceMax(Math.max.apply(null, items.map(function (b) { return b.v; }).concat([1]))), mid = top / 2;
+    var fmtY = function (x) { return x % 1 ? x.toFixed(1) : fmt(x); };
+    return '<div class="ad-chart"><div class="ad-y" aria-hidden="true"><span>' + fmtY(top) + "</span><span>" + fmtY(mid) + "</span><span>0</span></div>" +
+      '<div class="ad-plot"><i class="ad-grid g1"></i><i class="ad-grid g2"></i><div class="cm-bars ad-bars" role="img" aria-label="' + esc(label) + ", scale 0 to " + top + '">' +
+      items.map(function (b) { var v = b.v; return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(3, Math.round(v / top * 100)) : 2) + '%" title="' + esc(b.tip) + '"></span>'; }).join("") +
+      "</div></div></div>" + (xlabels && xlabels.length ? '<div class="ad-axis ad-axis-x">' + xlabels.map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("") + "</div>" : "");
+  }
   function bars(rows, val, label, tip) {
-    var max = Math.max.apply(null, rows.map(function (r) { return num(val(r)); }).concat([1]));
-    return '<div class="cm-bars ad-bars" role="img" aria-label="' + esc(label) + '">' + rows.map(function (r) { var v = num(val(r)); return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(5, Math.round(v / max * 100)) : 2) + '%" title="' + esc(tip(r)) + '"></span>'; }).join("") + "</div>" +
-      (rows.length ? '<div class="ad-axis"><span>' + esc(short(rows[0].d)) + "</span><span>" + esc(short(rows[rows.length - 1].d)) + "</span></div>" : "");
+    return chart(rows.map(function (r) { return { v: num(val(r)), tip: tip(r) }; }), label, rows.length ? [short(rows[0].d), short(rows[rows.length - 1].d)] : []);
   }
   function table(head, rows) { return '<table class="ad-table"><thead><tr>' + head.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + (rows.length ? rows.join("") : '<tr><td colspan="' + head.length + '">None yet</td></tr>') + "</tbody></table>"; }
   function section(title, inner, id) { id = id || "ad-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, ""); return '<section class="box ad-sec" id="' + id + '"><h2 class="fb-h">' + title + "</h2>" + inner + "</section>"; }
