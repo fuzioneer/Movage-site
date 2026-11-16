@@ -497,3 +497,5 @@ select.fb-in { appearance: auto; }
 .ad-shr i { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .ad-shr em { display: block; height: 100%; background: var(--z-hp); border-radius: 4px; }
 .ad-shr b { text-align: right; color: var(--text); font-size: 14px; }
+.ad-mini { display: block; height: 4px; margin-top: 6px; border-radius: 2px; background: var(--line); overflow: hidden; min-width: 60px; }
+.ad-mini em { display: block; height: 100%; background: var(--z-hp); }

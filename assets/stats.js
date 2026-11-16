@@ -58,12 +58,12 @@
   function load() {
     msg("#ad-msg", "Loading..."); $("#ad-body").setAttribute("aria-busy", "true");
     var days = Number($("#ad-days").value);
-    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days }), sb.rpc("admin_site_stats", { p_days: days })]).then(function (res) {
+    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days }), sb.rpc("admin_site_stats", { p_days: days }), sb.rpc("admin_demographics", { p_days: days })]).then(function (res) {
       $("#ad-body").removeAttribute("aria-busy");
-      var r = res[0], t = res[1], w = res[2];
+      var r = res[0], t = res[1], w = res[2], g = res[3];
       if (r.error) { msg("#ad-msg", errText(r.error), true); return; }
       msg("#ad-msg", "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ".");
-      draw(r.data || {}, t.error ? null : (t.data || []), w.error ? null : (w.data || {}));
+      draw(r.data || {}, t.error ? null : (t.data || []), w.error ? null : (w.data || {}), g.error ? null : (g.data || {}));
       jump();
     });
   }
@@ -116,7 +116,23 @@
   var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", website: "Website", general: "Something else" };
   var DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  function draw(s, top, web) {
+
+  var AGES = [["u18", "13 to 17"], ["18_24", "18 to 24"], ["25_34", "25 to 34"], ["35_44", "35 to 44"], ["45_54", "45 to 54"], ["55_64", "55 to 64"], ["65p", "65 and over"], ["none", "Not given"]];
+  var GENDERS = [["female", "Female"], ["male", "Male"], ["nonbinary", "Non-binary"], ["other", "Other"], ["na", "Prefer not to say"], ["none", "Not given"]];
+  function demoTable(rows, order, d) {
+    var by = {}; (rows || []).forEach(function (x) { by[x.k] = x; });
+    var list = order.map(function (o) { var x = by[o[0]] || { members: 0, active: 0, sessions: 0, secs: 0 }; return { label: o[1], x: x }; }).filter(function (r) { return num(r.x.members) > 0; });
+    var maxT = Math.max.apply(null, list.map(function (r) { return num(r.x.secs); }).concat([1]));
+    return '<div class="ad-scroll">' + table(["Group", "Members", "Active", "Sessions", "Time", "Avg days", "Avg score"], list.map(function (r) {
+      var x = r.x, m = num(x.members), a = num(x.active);
+      return "<tr><td>" + esc(r.label) + '<i class="ad-mini"><em style="width:' + Math.round(num(x.secs) / maxT * 100) + '%"></em></i></td><td>' + fmt(m) + "</td><td>" + fmt(a) + ' <small class="ad-sub">' + Math.round(a / (m || 1) * 100) + "%</small></td><td>" + fmt(x.sessions) + "</td><td>" + hm(x.secs) + "</td><td>" + (x.avg_days == null ? "–" : esc(x.avg_days)) + "</td><td>" + (x.avg_score == null ? "–" : num(x.avg_score)) + "</td></tr>";
+    })) + "</div>";
+  }
+  function people(g, d) {
+    return section("Age and gender", '<p class="fb-fine">Community members grouped by the age and gender they chose to give (both optional). "Active" means they did at least one guided routine in the last ' + d + ' days; the bar shows each group\'s share of stretching time. Sessions and scores only count people who share their time or score. Only totals are shown, never who is in a group.</p>' +
+      "<h3>By age</h3>" + demoTable(g.age, AGES, d) + "<h3>By gender</h3>" + demoTable(g.gender, GENDERS, d), "ad-people");
+  }
+  function draw(s, top, web, demo) {
     var a = s.accounts || {}, c = s.community || {}, se = s.sessions || {}, sc = s.scores || {}, ea = s.early_access || {}, fb = s.feedback || {}, d = num(s.days);
     var h = '<div class="cm-stats">' +
       card(fmt(a.total), "Accounts", "+" + fmt(a.new_7) + " this week") +
@@ -132,6 +148,7 @@
       "<h3>People active per day</h3>" + bars(se.per_day || [], function (r) { return r.users; }, "People who did a routine each day", function (r) { return short(r.d) + ": " + num(r.users) + " people"; }) +
       "<h3>Busiest days (last 90 days)</h3>" + table(["Day", "Sessions"], (se.by_weekday || []).map(function (w) { return "<tr><td>" + DOW[num(w.dow)] + "</td><td>" + fmt(w.n) + "</td></tr>"; })));
 
+    if (demo) h += people(demo, d);
     h += section("New accounts", bars(a.per_day || [], function (r) { return r.n; }, "New accounts per day", function (r) { return short(r.d) + ": " + num(r.n) + " new"; }) +
       '<p class="fb-fine">' + fmt(a.new_period) + " new in the last " + d + " days. " + fmt(a.google) + " use Google sign-in.</p>");
 

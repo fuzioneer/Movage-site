@@ -5,6 +5,7 @@
   /* Don't run inside someone else's frame (clickjacking). */
   if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) {} document.documentElement.style.display = "none"; return; }
   "use strict";
+  var GENDER = { female: "Female", male: "Male", nonbinary: "Non-binary", other: "Other", na: "Prefer not to say" };
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
   var $ = function (s) { return document.querySelector(s); };
@@ -81,13 +82,13 @@
   $("#cm-signout").addEventListener("click", function () { doSignOut(); });
 
   /* ---------- profile ---------- */
-  var PCOLS = "nickname, share_time, share_score, created_at, first_name, last_name, country, age";
+  var PCOLS = "nickname, share_time, share_score, created_at, first_name, last_name, country, age, gender";
   function loadProfile() { return sb.from("profiles").select(PCOLS).maybeSingle().then(ok); }
   function saveProfile(p) {
     return sb.auth.getUser().then(function (r) {
       var u = ok(r).user; if (!u) throw new Error("sign in first");
       var row = { id: u.id, nickname: p.nickname, share_time: !!p.share_time, share_score: !!p.share_score };
-      ["first_name", "last_name", "country", "age"].forEach(function (k) { if (p[k] !== undefined) row[k] = p[k]; });
+      ["first_name", "last_name", "country", "age", "gender"].forEach(function (k) { if (p[k] !== undefined) row[k] = p[k]; });
       return sb.from("profiles").upsert(row).select(PCOLS).single().then(ok);
     });
   }
@@ -109,7 +110,7 @@
   }
   function nickForm(editing) {
     fillCountries();
-    $("#cm-fn").value = prof && prof.first_name || ""; $("#cm-ln").value = prof && prof.last_name || ""; $("#cm-country").value = prof && prof.country || ""; $("#cm-age").value = prof && prof.age || "";
+    $("#cm-fn").value = prof && prof.first_name || ""; $("#cm-ln").value = prof && prof.last_name || ""; $("#cm-country").value = prof && prof.country || ""; $("#cm-age").value = prof && prof.age || ""; $("#cm-gender").value = prof && prof.gender || "";
     show("#cm-nick");
     /* Say which account this is, so someone signed in with a different email (e.g. from the bugs board) can switch. */
     sb.auth.getUser().then(function (r) { var u = r.data && r.data.user, w = $("#cm-nick-who");
@@ -131,7 +132,7 @@
     var age = ag === "" ? null : Number(ag);
     if (age !== null && !(Number.isInteger(age) && age >= 13 && age <= 120)) { msg("#cm-nick-msg", "Age should be a whole number from 13 to 120, or leave it blank.", true); $("#cm-age").focus(); return; }
     var first = !prof, b = $("#cm-nick-form button[type=submit]"); b.disabled = true;
-    saveProfile({ nickname: nk, share_time: $("#cm-st").checked, share_score: $("#cm-ss").checked, first_name: fn, last_name: ln, country: co, age: age }).then(function (p) {
+    saveProfile({ nickname: nk, share_time: $("#cm-st").checked, share_score: $("#cm-ss").checked, first_name: fn, last_name: ln, country: co, age: age, gender: $("#cm-gender").value || null }).then(function (p) {
       b.disabled = false; prof = p; enterMain(); if (first) msg("#cm-list-msg", "Welcome to the Movage community.");
     }, function (er) { b.disabled = false; msg("#cm-nick-msg", errText(er), true); });
   });
@@ -239,7 +240,7 @@
   function drawDetails() {
     var p = prof || {}, missing = !p.first_name || !p.last_name || !p.country;
     $("#cm-details").innerHTML = "<dt>Nickname</dt><dd>" + esc(p.nickname) + "</dd><dt>Name</dt><dd>" + (p.first_name || p.last_name ? esc([p.first_name, p.last_name].filter(Boolean).join(" ")) : "Not set") + "</dd>" +
-      "<dt>Country</dt><dd>" + (p.country ? esc(countryName(p.country)) : "Not set") + "</dd><dt>Age</dt><dd>" + (p.age ? esc(p.age) : "Not given") + "</dd>";
+      "<dt>Country</dt><dd>" + (p.country ? esc(countryName(p.country)) : "Not set") + "</dd><dt>Age</dt><dd>" + (p.age ? esc(p.age) : "Not given") + "</dd><dt>Gender</dt><dd>" + esc(GENDER[p.gender] || "Not given") + "</dd>";
     $("#cm-nick-edit").textContent = missing ? "Add your name and country" : "Edit profile";
     msg("#cm-prof-msg", missing ? "Your profile is missing your name or country. Add them with the link above." : "");
   }
