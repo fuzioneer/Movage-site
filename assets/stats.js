@@ -69,6 +69,12 @@
   $("#ad-days").addEventListener("change", load);
   $("#ad-refresh").addEventListener("click", load);
 
+  /* Country flag (bundled SVGs from flag-icons, MIT), with the country name as its label. */
+  function flag(c) {
+    if (!/^[A-Z]{2}$/.test(c || "")) return '<span class="ad-flag none" title="Country not set" aria-label="Country not set"></span>';
+    var name = c; try { name = new Intl.DisplayNames(["en-GB"], { type: "region" }).of(c) || c; } catch (e) {}
+    return '<img class="ad-flag" src="assets/flags/' + c.toLowerCase() + '.svg" width="22" height="16" alt="' + esc(name) + '" title="' + esc(name) + '" loading="lazy">';
+  }
   function card(v, label, sub) { return '<div class="cm-stat"><b>' + v + "</b><span>" + label + "</span>" + (sub ? '<small class="ad-sub">' + sub + "</small>" : "") + "</div>"; }
   function bars(rows, val, label, tip) {
     var max = Math.max.apply(null, rows.map(function (r) { return num(val(r)); }).concat([1]));
@@ -90,7 +96,7 @@
       card(fmt(ea.total), "Early access list", "+" + fmt(ea.new_7) + " this week") + "</div>";
 
     if (top) h += section("Top 10 users", '<p class="fb-fine">By guided time in the last ' + d + " days. Nicknames only.</p>" + '<div class="ad-scroll">' + table(["#", "Nickname", "Sessions", "Days", "Time", "Score", "Last active"],
-      top.map(function (u) { return "<tr><td>" + num(u.rank) + "</td><td>" + esc(u.nickname) + '<small class="ad-sub">' + num(u.clubs) + (num(u.clubs) === 1 ? " club" : " clubs") + (u.member_since ? " &middot; joined " + esc(short(u.member_since)) : "") + "</small></td><td>" + fmt(u.sessions) + "</td><td>" + fmt(u.active_days) + "</td><td>" + hm(u.secs) + "</td><td>" + (u.score == null ? "–" : num(u.score) + (u.verified ? " ✓" : "")) + "</td><td>" + (u.last_active ? esc(short(u.last_active)) : "–") + "</td></tr>"; })) + "</div>");
+      top.map(function (u) { return "<tr><td>" + num(u.rank) + "</td><td>" + flag(u.country) + esc(u.nickname) + '<small class="ad-sub">' + num(u.clubs) + (num(u.clubs) === 1 ? " club" : " clubs") + (u.member_since ? " &middot; joined " + esc(short(u.member_since)) : "") + "</small></td><td>" + fmt(u.sessions) + "</td><td>" + fmt(u.active_days) + "</td><td>" + hm(u.secs) + "</td><td>" + (u.score == null ? "–" : num(u.score) + (u.verified ? " ✓" : "")) + "</td><td>" + (u.last_active ? esc(short(u.last_active)) : "–") + "</td></tr>"; })) + "</div>");
     h += section("Guided sessions", '<div class="cm-stats">' + card(fmt(se.period), "Sessions, last " + d + " days") + card(hm(se.secs_period), "Time stretching") + card(hm(se.avg_secs), "Average session") + card(fmt(se.total), "All shared sessions") + "</div>" +
       "<h3>Sessions per day</h3>" + bars(se.per_day || [], function (r) { return r.n; }, "Sessions per day", function (r) { return short(r.d) + ": " + num(r.n) + " sessions, " + num(r.users) + " people, " + hm(r.secs); }) +
       "<h3>People active per day</h3>" + bars(se.per_day || [], function (r) { return r.users; }, "People who did a routine each day", function (r) { return short(r.d) + ": " + num(r.users) + " people"; }) +
