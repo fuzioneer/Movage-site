@@ -1,6 +1,8 @@
 /* Movage bugs and ideas board. Sign-in is the same email code as Community in the app.
    All reads and writes go through database functions (fb_*) that only return nicknames. */
 (function () {
+  /* Don't run inside someone else's frame (clickjacking). */
+  if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) {} document.documentElement.style.display = "none"; return; }
   "use strict";
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
@@ -26,13 +28,24 @@
 
   /* ---------- sign in ---------- */
   function showAuth() { $("#fb-app").hidden = true; $("#fb-auth").hidden = false; $("#fb-email-form").hidden = false; $("#fb-code-form").hidden = true; }
+  /* Anti-spam: hidden field only bots fill in, a minimum time on the page, and one code per minute from this browser. */
+  var T0 = Date.now(), COOL = 60000, LASTKEY = "movage-code-sent";
+  function lastSent() { try { return Number(localStorage.getItem(LASTKEY)) || 0; } catch (e) { return 0; } }
+  function cooldown(b) {
+    var left = Math.ceil((COOL - (Date.now() - lastSent())) / 1000); if (left <= 0) { b.disabled = false; b.textContent = "Send code"; return; }
+    b.disabled = true; b.textContent = "Wait " + left + "s"; setTimeout(function () { cooldown(b); }, 1000);
+  }
   $("#fb-email-form").addEventListener("submit", function (e) {
     e.preventDefault();
-    var v = $("#fb-email").value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { msg("#fb-auth-msg", "Please enter a valid email address.", true); return; }
-    var b = e.submitter || $("#fb-email-form button"); b.disabled = true; msg("#fb-auth-msg", "Sending your code...");
+    var v = $("#fb-email").value.trim(), hp = this.querySelector('[name="company"]');
+    if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v) || v.length > 254) { msg("#fb-auth-msg", "Please enter a valid email address.", true); return; }
+    if ((hp && hp.value) || Date.now() - T0 < 2500) { email = v; $("#fb-sent-to").textContent = v; $("#fb-email-form").hidden = true; $("#fb-code-form").hidden = false; return; }
+    var wait = Math.ceil((COOL - (Date.now() - lastSent())) / 1000);
+    if (wait > 0) { msg("#fb-auth-msg", "Please wait " + wait + " seconds before asking for another code.", true); return; }
+    var b = $("#fb-email-form button[type=submit]"); b.disabled = true; msg("#fb-auth-msg", "Sending your code...");
+    try { localStorage.setItem(LASTKEY, String(Date.now())); } catch (er) {}
     sb.auth.signInWithOtp({ email: v, options: { shouldCreateUser: true } }).then(function (r) {
-      b.disabled = false;
+      cooldown(b);
       if (r.error) { msg("#fb-auth-msg", errText(r.error), true); return; }
       email = v; $("#fb-sent-to").textContent = v; $("#fb-email-form").hidden = true; $("#fb-code-form").hidden = false; msg("#fb-auth-msg", ""); $("#fb-code").focus();
     });
@@ -94,7 +107,7 @@
   function matches(i) { if (i.kind === "test" && !admin) return false; var hay = (i.title + " " + i.body + " " + (i.author || "")).toLowerCase(); return qWords().every(function (w) { return hay.indexOf(w) >= 0; }); }
   function mark(text) {
     var out = esc(text); if (!searching()) return out;
-    qWords().forEach(function (w) { var re = new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); out = out.replace(/(<[^>]*>)|([^<]+)/g, function (m, tag, txt) { return tag || txt.replace(re, "<mark>$1</mark>"); }); });
+    qWords().forEach(function (w) { var re = new RegExp("(" + esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"); out = out.replace(/(<[^>]*>|&[#a-z0-9]+;)|([^<&]+)/gi, function (m, tag, txt) { return tag || txt.replace(re, "<mark>$1</mark>"); }); });
     return out;
   }
   function snippet(body) {
@@ -118,7 +131,7 @@
       Object.keys(STATUS).map(function (k) { return '<option value="' + k + '"' + (k === i.status ? " selected" : "") + ">" + STATUS[k] + "</option>"; }).join("") + "</select>" +
       '<label class="sr" for="fb-ar-' + i.id + '">Section</label><select class="fb-sel fb-st" id="fb-ar-' + i.id + '" data-act="area" data-id="' + i.id + '">' +
       Object.keys(AREA).map(function (k) { return '<option value="' + k + '"' + (k === (i.area || "general") ? " selected" : "") + ">" + AREA[k] + "</option>"; }).join("") + "</select>" : "";
-    return '<li class="fb-item k-' + i.kind + (open ? " open" : "") + '" id="fb-i-' + i.id + '">' +
+    return '<li class="fb-item k-' + esc(i.kind) + (open ? " open" : "") + '" id="fb-i-' + i.id + '">' +
       (i.kind === "test" ? '<span class="fb-vote fb-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6 11-11-1.4-1.4z"/></svg></span>' : '<button type="button" class="fb-vote' + (i.my_vote ? " on" : "") + '" data-act="vote" data-id="' + i.id + '" aria-pressed="' + !!i.my_vote + '" aria-label="' + (i.my_vote ? "Remove your vote" : "Vote for this") + ", " + i.votes + ' votes">' +
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><span>' + i.votes + "</span></button>") +
       '<div class="fb-main">' +

@@ -347,3 +347,31 @@ select.fb-in { min-height: 50px; appearance: auto; }
 /* Post opened from an email link */
 .fb-item.flash { box-shadow: 0 0 0 3px rgba(70,179,159,.6); transition: box-shadow .6s; }
 .fb-item { scroll-margin-top: 90px; }
+
+/* Community: my activity */
+.cm-views { margin: 16px 0 4px; }
+.cm-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
+@media (min-width: 640px) { .cm-stats { grid-template-columns: repeat(4, 1fr); } }
+.cm-stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.cm-stat b { display: block; font-size: 22px; color: var(--text); font-variant-numeric: tabular-nums; }
+.cm-stat span { font-size: 13px; color: var(--text-2); }
+.cm-chart, .cm-score { margin-top: 16px; }
+.cm-bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-top: 12px; }
+.cm-bar { flex: 1; background: rgba(127,127,127,.25); border-radius: 3px 3px 0 0; min-height: 2px; }
+.cm-bar.on { background: var(--teal); }
+.cm-big { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
+.cm-big > b { font-size: 56px; line-height: 1; color: var(--text); }
+.cm-big > span { color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+.cm-zones { display: grid; gap: 10px; margin-top: 14px; }
+.cm-zone { display: grid; grid-template-columns: 130px 1fr 34px; align-items: center; gap: 10px; color: var(--text-3); font-size: 15px; }
+.cm-zone i { height: 8px; border-radius: 99px; background: rgba(127,127,127,.25); overflow: hidden; }
+.cm-zone em { display: block; height: 100%; background: var(--teal); border-radius: 99px; }
+.cm-zone b { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+.cm-acct { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 12px 0 0; }
+.cm-acct dt { color: var(--text-2); }
+.cm-acct dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+
+/* Social links in the footer */
+.foot .soc { display: inline-flex; align-items: center; gap: 8px; }
+.foot .soc svg { width: 20px; height: 20px; flex: none; }
+.cm-ver { display: flex; align-items: center; gap: 4px; margin-top: 6px !important; color: var(--teal) !important; font-size: 15px !important; }

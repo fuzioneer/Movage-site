@@ -1,10 +1,12 @@
 /* Early access sign-up. Stores the email in the Movage Supabase project (London).
    The publishable key is public by design: the database only lets the public add a row, never read the list. */
 (function () {
+  /* Don't run inside someone else's frame (clickjacking). */
+  if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) {} document.documentElement.style.display = "none"; return; }
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co/rest/v1/early_access";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
   var source = (function () { try { var q = new URLSearchParams(location.search); return (q.get("ref") || q.get("utm_source") || "website").replace(/[^a-z0-9_.-]/gi, "").slice(0, 40) || "website"; } catch (e) { return "website"; } })();
-  var EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+  var EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/, T0 = Date.now();
 
   /* Confirmation pop-up */
   var IG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
@@ -38,7 +40,7 @@
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var email = form.email.value.trim(), consent = form.consent.checked;
-      if (form.company && form.company.value) { say("Thanks, you're on the list.", true); return; }
+      if ((form.company && form.company.value) || Date.now() - T0 < 2500) { say("Thanks, you're on the list.", true); form.reset(); return; } /* bots: honeypot filled or instant submit */
       if (!EMAIL.test(email)) { say("Please enter a valid email address.", false); form.email.focus(); return; }
       if (!consent) { say("Please tick the box so we can email you about early access.", false); form.consent.focus(); return; }
       btn.disabled = true; var label = btn.textContent; btn.textContent = "Adding you…";

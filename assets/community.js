@@ -2,6 +2,8 @@
    Everything goes through the same database functions as the app, which only ever return nicknames.
    Time and scores are added by the app; here people can view the boards and manage their clubs and profile. */
 (function () {
+  /* Don't run inside someone else's frame (clickjacking). */
+  if (window.top !== window.self) { try { window.top.location = window.location.href; } catch (e) {} document.documentElement.style.display = "none"; return; }
   "use strict";
   var URL_ = "https://atmoejivzryboipwvwdv.supabase.co";
   var KEY = "sb_publishable_WgkGQ5AbZDwK0zICuAAnBQ_oVkDCbCJ";
@@ -41,13 +43,25 @@
 
   /* ---------- sign in ---------- */
   function showAuth() { show("#cm-auth"); $("#cm-email-form").hidden = false; $("#cm-code-form").hidden = true; }
+  /* Anti-spam: a hidden field only bots fill in, a minimum time on the page, and one code per minute from this browser.
+     Supabase also limits how many codes each address and network can ask for. */
+  var T0 = Date.now(), COOL = 60000, LASTKEY = "movage-code-sent";
+  function lastSent() { try { return Number(localStorage.getItem(LASTKEY)) || 0; } catch (e) { return 0; } }
+  function cooldown(b) {
+    var left = Math.ceil((COOL - (Date.now() - lastSent())) / 1000); if (left <= 0) { b.disabled = false; b.textContent = "Send code"; return; }
+    b.disabled = true; b.textContent = "Wait " + left + "s"; setTimeout(function () { cooldown(b); }, 1000);
+  }
   $("#cm-email-form").addEventListener("submit", function (e) {
     e.preventDefault();
-    var v = $("#cm-email").value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { msg("#cm-auth-msg", "Please enter a valid email address.", true); return; }
+    var v = $("#cm-email").value.trim(), hp = this.querySelector('[name="company"]');
+    if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(v) || v.length > 254) { msg("#cm-auth-msg", "Please enter a valid email address.", true); return; }
+    if ((hp && hp.value) || Date.now() - T0 < 2500) { email = v; $("#cm-sent-to").textContent = v; $("#cm-email-form").hidden = true; $("#cm-code-form").hidden = false; return; }
+    var wait = Math.ceil((COOL - (Date.now() - lastSent())) / 1000);
+    if (wait > 0) { msg("#cm-auth-msg", "Please wait " + wait + " seconds before asking for another code.", true); return; }
     var b = $("#cm-email-form button"); b.disabled = true; msg("#cm-auth-msg", "Sending your code...");
+    try { localStorage.setItem(LASTKEY, String(Date.now())); } catch (er) {}
     sb.auth.signInWithOtp({ email: v, options: { shouldCreateUser: true } }).then(function (r) {
-      b.disabled = false;
+      cooldown(b);
       if (r.error) { msg("#cm-auth-msg", errText(r.error), true); return; }
       email = v; $("#cm-sent-to").textContent = v; $("#cm-email-form").hidden = true; $("#cm-code-form").hidden = false; msg("#cm-auth-msg", ""); $("#cm-code").focus();
     });
@@ -67,11 +81,11 @@
   $("#cm-signout").addEventListener("click", function () { sb.auth.signOut().then(function () { prof = null; comms = []; scope = null; showAuth(); }); });
 
   /* ---------- profile ---------- */
-  function loadProfile() { return sb.from("profiles").select("nickname, share_time, share_score").maybeSingle().then(ok); }
+  function loadProfile() { return sb.from("profiles").select("nickname, share_time, share_score, created_at").maybeSingle().then(ok); }
   function saveProfile(p) {
     return sb.auth.getUser().then(function (r) {
       var u = ok(r).user; if (!u) throw new Error("sign in first");
-      return sb.from("profiles").upsert({ id: u.id, nickname: p.nickname, share_time: !!p.share_time, share_score: !!p.share_score }).select("nickname, share_time, share_score").single().then(ok);
+      return sb.from("profiles").upsert({ id: u.id, nickname: p.nickname, share_time: !!p.share_time, share_score: !!p.share_score }).select("nickname, share_time, share_score, created_at").single().then(ok);
     });
   }
   function start() {
@@ -101,7 +115,7 @@
   ["#cm-p-st", "#cm-p-ss"].forEach(function (sel) {
     $(sel).addEventListener("change", function () {
       var box = this, np = { nickname: prof.nickname, share_time: $("#cm-p-st").checked, share_score: $("#cm-p-ss").checked };
-      saveProfile(np).then(function (p) { prof = p; msg("#cm-prof-msg", "Saved."); refresh(); }, function (er) { box.checked = !box.checked; msg("#cm-prof-msg", errText(er), true); });
+      saveProfile(np).then(function (p) { prof = p; msg("#cm-prof-msg", "Saved."); if (view === "mine") loadMine(); else refresh(); }, function (er) { box.checked = !box.checked; msg("#cm-prof-msg", errText(er), true); });
     });
   });
   $("#cm-delete").addEventListener("click", function () {
@@ -113,6 +127,50 @@
       msg("#cm-auth-msg", "Your account and community data have been deleted.");
     }, function (er) { b.disabled = false; b.textContent = "Delete my account"; msg("#cm-prof-msg", errText(er), true); });
   });
+
+  /* ---------- my activity ---------- */
+  var ZONES = [["shoulders", "Shoulders"], ["overhead", "Overhead"], ["thorax", "Thorax"], ["postchain", "Posterior chain"], ["hips", "Hips"], ["ankles", "Ankles"]];
+  var view = "boards";
+  function setView(v) {
+    view = v; $("#cm-mine").hidden = v !== "mine"; $("#cm-boardsview").hidden = v === "mine";
+    document.querySelectorAll(".cm-views .fb-chip").forEach(function (b) { var on = b.dataset.view === v; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+    if (v === "mine") loadMine();
+  }
+  document.querySelectorAll(".cm-views .fb-chip").forEach(function (b) { b.addEventListener("click", function () { setView(b.dataset.view); }); });
+  function dateStr(d) { return new Date(d + (String(d).length === 10 ? "T12:00:00" : "")).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
+  function loadMine() {
+    $("#cm-stats").innerHTML = '<p class="cm-empty">Loading...</p>';
+    var since = new Date(); since.setDate(since.getDate() - 29); var from = iso(since);
+    Promise.all([
+      sb.from("sessions").select("local_date, secs").gte("local_date", from).order("local_date").then(ok),
+      sb.from("scores").select("overall, zones, verified, tested_on").maybeSingle().then(ok),
+      sb.auth.getUser().then(function (r) { return ok(r).user; })
+    ]).then(function (res) { drawMine(res[0] || [], res[1], res[2]); }, function (e) { $("#cm-stats").innerHTML = ""; msg("#cm-list-msg", errText(e), true); });
+  }
+  function drawMine(rows, sc, user) {
+    var byDay = {}; rows.forEach(function (r) { byDay[r.local_date] = (byDay[r.local_date] || 0) + Number(r.secs || 0); });
+    var wk = range("week")[0], mo = range("month")[0], tw = 0, tm = 0, t30 = 0, days = [], streak = 0;
+    for (var i = 29; i >= 0; i--) { var d = new Date(); d.setDate(d.getDate() - i); var k = iso(d), v = byDay[k] || 0; days.push([k, v, d]); t30 += v; if (k >= wk) tw += v; if (k >= mo) tm += v; }
+    for (var j = days.length - 1; j >= 0; j--) { if (days[j][1] > 0) streak++; else if (j === days.length - 1) continue; else break; }
+    var stat = function (val, lab) { return '<div class="cm-stat"><b>' + val + "</b><span>" + lab + "</span></div>"; };
+    $("#cm-stats").innerHTML = stat(hm(tw), "This week") + stat(hm(tm), "This month") + stat(String(rows.length), rows.length === 1 ? "Session, 30 days" : "Sessions, 30 days") + stat(String(streak), streak === 1 ? "Day streak" : "Day streak");
+    var max = Math.max.apply(null, days.map(function (x) { return x[1]; }).concat([600]));
+    $("#cm-bars").innerHTML = days.map(function (x) { var h = x[1] ? Math.max(6, Math.round(x[1] / max * 100)) : 2; return '<span class="cm-bar' + (x[1] ? " on" : "") + '" style="height:' + h + '%" title="' + esc(x[2].toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + ": " + (x[1] ? hm(x[1]) : "rest day")) + '"></span>'; }).join("");
+    $("#cm-bars").setAttribute("aria-label", "Daily mobility time over the last 30 days, " + hm(t30) + " in total.");
+    $("#cm-bars-cap").textContent = rows.length ? hm(t30) + " of guided mobility in the last 30 days." : (prof && prof.share_time ? "No guided sessions in the last 30 days yet. Finish a routine in the app and it shows up here." : "\"Show my mobility time\" is off, so the app doesn't share your sessions. Turn it on below to see them here.");
+    var sh = $("#cm-myscore");
+    if (!sc) sh.innerHTML = '<p class="cm-empty">' + (prof && prof.share_score ? "No score yet. Save a mobility test in the app and your latest score appears here." : "\"Show my mobility score\" is off, so the app doesn't share your score. Turn it on below to see it here.") + "</p>";
+    else {
+      var z = sc.zones || {};
+      sh.innerHTML = '<div class="cm-big"><b>' + Number(sc.overall) + '</b><span>out of 100</span></div>' + (sc.verified ? '<p class="cm-ver"><span class="cm-tick on">' + TICK + "</span>Camera verified</p>" : "") +
+        '<p class="fb-fine">From your tests up to ' + esc(dateStr(sc.tested_on)) + ".</p>" +
+        '<div class="cm-zones">' + ZONES.map(function (zz) { var v = z[zz[0]]; if (typeof v !== "number") return ""; v = Math.round(v); return '<div class="cm-zone"><span>' + zz[1] + '</span><i><em style="width:' + Math.max(0, Math.min(100, v)) + '%"></em></i><b>' + v + "</b></div>"; }).join("") + "</div>";
+    }
+    $("#cm-acct").innerHTML = "<dt>Email</dt><dd>" + esc(user && user.email || "") + "</dd><dt>Nickname</dt><dd>" + esc(prof ? prof.nickname : "") + "</dd>" +
+      (prof && prof.created_at ? "<dt>Member since</dt><dd>" + esc(dateStr(prof.created_at)) + "</dd>" : "") +
+      "<dt>Clubs</dt><dd>" + (comms.length ? comms.map(function (c) { return esc(c.name) + (c.is_owner ? " (owner)" : ""); }).join(", ") : "None yet") + "</dd>" +
+      "<dt>Sharing</dt><dd>Time " + (prof && prof.share_time ? "on" : "off") + ", score " + (prof && prof.share_score ? "on" : "off") + "</dd>";
+  }
 
   /* ---------- clubs and boards ---------- */
   function loadComms() { return rpc("my_communities").then(function (c) { comms = c || []; if (scope && !comms.some(function (x) { return x.id === scope; })) scope = null; }, function () {}); }
@@ -144,8 +202,8 @@
     if (!cur) { el.innerHTML = ""; return; }
     var n = Number(cur.members);
     el.innerHTML = '<div class="box cm-clubcard"><h2 class="fb-h">' + esc(cur.name) + "</h2><p>" + (n === 1 ? "1 member" : n + " members") + ' &middot; Invite code <strong class="cm-code">' + esc(cur.code) + "</strong></p>" +
-      '<div class="fb-row"><button type="button" class="btn btn-primary" data-act="invite" data-id="' + cur.id + '">Invite</button><button type="button" class="btn btn-ghost" data-act="leave" data-id="' + cur.id + '">' + (armed === "leave" ? "Tap again to leave" : "Leave") + "</button></div>" +
-      (cur.is_owner ? '<label class="cm-check"><input type="checkbox" data-act="listed" data-id="' + cur.id + '"' + (cur.listed !== false ? " checked" : "") + "><span>Show on Top clubs <span class=\"fb-opt\">(everyone on Movage can see the club name and member count)</span></span></label>" : "") +
+      '<div class="fb-row"><button type="button" class="btn btn-primary" data-act="invite" data-id="' + esc(cur.id) + '">Invite</button><button type="button" class="btn btn-ghost" data-act="leave" data-id="' + esc(cur.id) + '">' + (armed === "leave" ? "Tap again to leave" : "Leave") + "</button></div>" +
+      (cur.is_owner ? '<label class="cm-check"><input type="checkbox" data-act="listed" data-id="' + esc(cur.id) + '"' + (cur.listed !== false ? " checked" : "") + "><span>Show on Top clubs <span class=\"fb-opt\">(everyone on Movage can see the club name and member count)</span></span></label>" : "") +
       '<p class="fb-msg" id="cm-club-msg" role="status" aria-live="polite"></p></div>';
   }
   function refresh() {
@@ -161,10 +219,10 @@
       list.innerHTML = rows.map(function (x) {
         if (board === "clubs") {
           var v = clubMetric === "score" ? "<b>" + Math.round(Number(x.value)) + "</b>" : hm(Number(x.value));
-          return '<li class="cm-row' + (x.is_mine ? " me" : "") + '"><span class="cm-rank">' + x.rank + '</span><span class="cm-name">' + esc(x.name) + (x.is_mine ? ' <span class="cm-you">(your club)</span>' : "") + '<span class="cm-mem">' + x.members + " members</span></span><span class=\"cm-val\">" + v + "</span></li>";
+          return '<li class="cm-row' + (x.is_mine ? " me" : "") + '"><span class="cm-rank">' + Number(x.rank) + '</span><span class="cm-name">' + esc(x.name) + (x.is_mine ? ' <span class="cm-you">(your club)</span>' : "") + '<span class="cm-mem">' + Number(x.members) + " members</span></span><span class=\"cm-val\">" + v + "</span></li>";
         }
-        var val = board === "time" ? hm(x.secs) : "<b>" + x.overall + "</b>" + (x.verified ? '<span class="cm-tick on" role="img" aria-label="Camera verified" title="Camera verified">' + TICK + "</span>" : '<span class="cm-tick"></span>');
-        return '<li class="cm-row' + (x.is_me ? " me" : "") + '"><span class="cm-rank">' + x.rank + '</span><span class="cm-name">' + esc(x.nickname) + (x.is_me ? ' <span class="cm-you">(you)</span>' : "") + '</span><span class="cm-val">' + val + "</span></li>";
+        var val = board === "time" ? hm(x.secs) : "<b>" + Number(x.overall) + "</b>" + (x.verified ? '<span class="cm-tick on" role="img" aria-label="Camera verified" title="Camera verified">' + TICK + "</span>" : '<span class="cm-tick"></span>');
+        return '<li class="cm-row' + (x.is_me ? " me" : "") + '"><span class="cm-rank">' + Number(x.rank) + '</span><span class="cm-name">' + esc(x.nickname) + (x.is_me ? ' <span class="cm-you">(you)</span>' : "") + '</span><span class="cm-val">' + val + "</span></li>";
       }).join("");
     }, function (e) {
       if (my !== req) return; list.innerHTML = ""; msg("#cm-list-msg", errText(e), true);
