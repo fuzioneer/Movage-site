@@ -134,7 +134,8 @@
   });
 
   /* ---------- my activity ---------- */
-  var ZONES = [["shoulders", "Shoulders"], ["overhead", "Overhead"], ["thorax", "Thorax"], ["postchain", "Posterior chain"], ["hips", "Hips"], ["ankles", "Ankles"]];
+  /* Zone colours match the app and the front page (--z-* in site.css). */
+  var ZONES = [["shoulders", "Shoulders", "var(--z-sh)"], ["overhead", "Overhead", "var(--z-oh)"], ["thorax", "Thorax", "var(--z-th)"], ["postchain", "Posterior chain", "var(--z-pc)"], ["hips", "Hips", "var(--z-hp)"], ["ankles", "Ankles", "var(--z-an)"]];
   var view = "boards";
   function setView(v) {
     view = v; $("#cm-mine").hidden = v !== "mine"; $("#cm-boardsview").hidden = v === "mine";
@@ -196,7 +197,7 @@
       var z = sc.zones || {};
       sh.innerHTML = '<div class="cm-big"><b>' + Number(sc.overall) + '</b><span>out of 100</span></div>' + (sc.verified ? '<p class="cm-ver"><span class="cm-tick on">' + TICK + "</span>Camera verified</p>" : "") +
         '<p class="fb-fine">From your tests up to ' + esc(dateStr(sc.tested_on)) + ".</p>" +
-        '<div class="cm-zones">' + ZONES.map(function (zz) { var v = z[zz[0]]; if (typeof v !== "number") return ""; v = Math.round(v); return '<div class="cm-zone"><span>' + zz[1] + '</span><i><em style="width:' + Math.max(0, Math.min(100, v)) + '%"></em></i><b>' + v + "</b></div>"; }).join("") + "</div>";
+        '<div class="cm-zones">' + ZONES.map(function (zz) { var v = z[zz[0]]; if (typeof v !== "number") return ""; v = Math.round(v); return '<div class="cm-zone"><span><i class="cm-zdot" style="background:' + zz[2] + '"></i>' + zz[1] + '</span><i><em style="width:' + Math.max(0, Math.min(100, v)) + "%;background:" + zz[2] + '"></em></i><b>' + v + "</b></div>"; }).join("") + "</div>";
     }
     $("#cm-acct").innerHTML = "<dt>Email</dt><dd>" + esc(user && user.email || "") + "</dd><dt>Nickname</dt><dd>" + esc(prof ? prof.nickname : "") + "</dd>" +
       (prof && prof.created_at ? "<dt>Member since</dt><dd>" + esc(dateStr(prof.created_at)) + "</dd>" : "") +
