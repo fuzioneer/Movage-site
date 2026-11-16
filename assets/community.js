@@ -220,7 +220,11 @@
     else p = rpc("score_board", { p_community: scope || null, p_verified_only: !!verifiedOnly, p_limit: 50 });
     p.then(function (rows) {
       if (my !== req) return; rows = rows || [];
-      if (!rows.length) { list.innerHTML = '<li class="cm-empty">' + (board === "clubs" ? "No clubs on the board yet. Start a club, invite a friend and finish a routine in the app to get on it." : board === "time" ? "No time logged in this period yet. Finish a guided routine in the app to get on the board." : verifiedOnly ? "No camera-verified scores yet." : "No scores shared yet. Save a mobility test in the app to add yours.") + "</li>"; return; }
+      /* Top clubs only counts clubs with 2 or more members, so one person's time or score is never shown as a club's. */
+      var small = board === "clubs" ? comms.filter(function (c) { return Number(c.members) < 2; }) : [];
+      var smallNote = small.length ? " " + small.map(function (c) { return esc(c.name); }).join(", ") + (small.length === 1 ? " isn't" : " aren't") + " on it yet because a club needs at least 2 members. Use Invite to bring someone in." : "";
+      if (board === "clubs" && small.length && rows.length) msg("#cm-list-msg", smallNote.trim());
+      if (!rows.length) { list.innerHTML = '<li class="cm-empty">' + (board === "clubs" ? "No clubs on the board yet." + (smallNote || " Start a club, invite a friend and finish a routine in the app to get on it.") : board === "time" ? "No time logged in this period yet. Finish a guided routine in the app to get on the board." : verifiedOnly ? "No camera-verified scores yet." : "No scores shared yet. Save a mobility test in the app to add yours.") + "</li>"; return; }
       list.innerHTML = rows.map(function (x) {
         if (board === "clubs") {
           var v = clubMetric === "score" ? "<b>" + Math.round(Number(x.value)) + "</b>" : hm(Number(x.value));
