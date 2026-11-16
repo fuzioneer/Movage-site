@@ -78,7 +78,7 @@
     });
   });
   $("#cm-restart").addEventListener("click", function () { $("#cm-code").value = ""; msg("#cm-auth-msg", ""); showAuth(); $("#cm-email").focus(); });
-  $("#cm-signout").addEventListener("click", function () { try { localStorage.removeItem("movage-admin"); } catch (e) {} sb.auth.signOut().then(function () { prof = null; comms = []; scope = null; showAuth(); }); });
+  $("#cm-signout").addEventListener("click", function () { doSignOut(); });
 
   /* ---------- profile ---------- */
   function loadProfile() { return sb.from("profiles").select("nickname, share_time, share_score, created_at").maybeSingle().then(ok); }
@@ -128,7 +128,7 @@
     var b = this;
     if (armed !== "delete") { armed = "delete"; b.textContent = "Tap again to delete for good"; return; }
     armed = ""; b.disabled = true;
-    rpc("delete_account").then(function () { return sb.auth.signOut(); }).then(function () {
+    rpc("delete_account").then(function () { forget(); return sb.auth.signOut(); }).then(function () {
       b.disabled = false; b.textContent = "Delete my account"; prof = null; comms = []; scope = null; showAuth();
       msg("#cm-auth-msg", "Your account and community data have been deleted.");
     }, function (er) { b.disabled = false; b.textContent = "Delete my account"; msg("#cm-prof-msg", errText(er), true); });
@@ -211,11 +211,28 @@
   function enterMain() {
     show("#cm-app"); $("#cm-me").textContent = prof.nickname; $("#cm-nickname").textContent = prof.nickname;
     $("#cm-p-st").checked = !!prof.share_time; $("#cm-p-ss").checked = !!prof.share_score;
+    try { localStorage.setItem("movage-nick", prof.nickname); } catch (e) {} if (window.MOVAGE_FOOT) MOVAGE_FOOT();
     loadComms().then(function () {
       if (pendingJoin) { var c = pendingJoin; pendingJoin = null; $("#cm-joinbox").hidden = false; $("#cm-join-code").value = c; return join(c); }
-      refresh();
+      if (!goHash()) refresh();
     });
   }
+  /* Links from the account menu in the header: #boards, #mine, #clubs, #profile and #signout. */
+  function goHash() {
+    var h = location.hash.replace("#", "");
+    if (h === "signout") { history.replaceState(null, "", location.pathname); doSignOut(); return true; }
+    if (h === "mine") { setView("mine"); return true; }
+    if (h === "boards" || h === "clubs" || h === "profile") {
+      setView("boards"); refresh();
+      if (h === "clubs") { $("#cm-joinbox").hidden = comms.length > 0; renderControls(); setTimeout(function () { $("#cm-scopes").scrollIntoView({ behavior: "smooth", block: "center" }); }, 60); }
+      if (h === "profile") setTimeout(function () { $("#cm-profile").scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
+      return true;
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", function () { if (!$("#cm-app").hidden || location.hash === "#signout") goHash(); });
+  function forget() { try { localStorage.removeItem("movage-admin"); localStorage.removeItem("movage-nick"); } catch (e) {} }
+  function doSignOut() { forget(); sb.auth.signOut().then(function () { prof = null; comms = []; scope = null; showAuth(); msg("#cm-auth-msg", "You're signed out."); if (window.MOVAGE_FOOT) MOVAGE_FOOT(); }); }
   function chip(act, id, label, on, extra) { return '<button type="button" class="fb-chip' + (on ? " on" : "") + '" data-act="' + act + '" data-id="' + esc(id) + '" role="tab" aria-selected="' + !!on + '"' + (extra || "") + ">" + label + "</button>"; }
   function renderControls() {
     $("#cm-scopes").innerHTML = '<div class="fb-chips">' + chip("scope", "", "Everyone", !scope) + comms.map(function (c) { return chip("scope", c.id, esc(c.name), scope === c.id); }).join("") +
@@ -321,5 +338,5 @@
     rpc("set_community_listed", { p_id: id, p_listed: on }).then(function () { if (c) c.listed = on; msg("#cm-club-msg", on ? "Your club is on the Top clubs board." : "Your club is hidden from Top clubs."); }, function (er) { el.checked = !on; msg("#cm-club-msg", errText(er), true); });
   });
 
-  sb.auth.getSession().then(function (r) { var s = r.data && r.data.session; if (s) start(); else { showAuth(); if (pendingJoin) msg("#cm-auth-msg", "Sign in to join the club with code " + pendingJoin + "."); } });
+  sb.auth.getSession().then(function (r) { var s = r.data && r.data.session; var out = location.hash === "#signout"; if (out) history.replaceState(null, "", location.pathname); if (s && out) doSignOut(); else if (s) start(); else { forget(); if (window.MOVAGE_FOOT) MOVAGE_FOOT(); showAuth(); if (pendingJoin) msg("#cm-auth-msg", "Sign in to join the club with code " + pendingJoin + "."); } });
 })();
