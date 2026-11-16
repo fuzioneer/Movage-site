@@ -62,12 +62,12 @@
     });
   });
   $("#fb-restart").addEventListener("click", function () { $("#fb-code").value = ""; msg("#fb-auth-msg", ""); showAuth(); $("#fb-email").focus(); });
-  $("#fb-signout").addEventListener("click", function () { sb.auth.signOut().then(function () { items = []; $("#fb-list").innerHTML = ""; showAuth(); }); });
+  $("#fb-signout").addEventListener("click", function () { try { localStorage.removeItem("movage-admin"); } catch (e) {} sb.auth.signOut().then(function () { items = []; $("#fb-list").innerHTML = ""; showAuth(); }); });
 
   function start(user) {
     $("#fb-me").textContent = user.email || "your account";
     $("#fb-auth").hidden = true; $("#fb-app").hidden = false;
-    rpc("fb_is_admin").then(function (a) { admin = !!a; document.querySelectorAll(".fb-admin").forEach(function (el) { el.hidden = !admin; }); render(); }, function () {});
+    rpc("fb_is_admin").then(function (a) { admin = !!a; try { if (admin) localStorage.setItem("movage-admin", "1"); else localStorage.removeItem("movage-admin"); } catch (e) {} if (window.MOVAGE_FOOT) MOVAGE_FOOT(); document.querySelectorAll(".fb-admin").forEach(function (el) { el.hidden = !admin; }); render(); }, function () {});
     load();
   }
 

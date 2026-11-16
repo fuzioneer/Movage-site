@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /admin.html
+Disallow: /statsinfo.html
 
 Sitemap: https://www.movage.co.uk/sitemap.xml

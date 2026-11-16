@@ -78,7 +78,7 @@
     });
   });
   $("#cm-restart").addEventListener("click", function () { $("#cm-code").value = ""; msg("#cm-auth-msg", ""); showAuth(); $("#cm-email").focus(); });
-  $("#cm-signout").addEventListener("click", function () { sb.auth.signOut().then(function () { prof = null; comms = []; scope = null; showAuth(); }); });
+  $("#cm-signout").addEventListener("click", function () { try { localStorage.removeItem("movage-admin"); } catch (e) {} sb.auth.signOut().then(function () { prof = null; comms = []; scope = null; showAuth(); }); });
 
   /* ---------- profile ---------- */
   function loadProfile() { return sb.from("profiles").select("nickname, share_time, share_score, created_at").maybeSingle().then(ok); }
@@ -89,6 +89,7 @@
     });
   }
   function start() {
+    sb.rpc("fb_is_admin").then(function (a) { try { if (a.data) localStorage.setItem("movage-admin", "1"); else localStorage.removeItem("movage-admin"); } catch (e) {} if (window.MOVAGE_FOOT) MOVAGE_FOOT(); });
     loadProfile().then(function (p) {
       prof = p;
       if (!p) return nickForm(false);

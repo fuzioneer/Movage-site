@@ -430,3 +430,7 @@ select.fb-in { min-height: 50px; appearance: auto; }
 .ad-table th, .ad-table td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); color: var(--text-3); }
 .ad-table th { color: var(--text-2); font-weight: 600; font-size: 13px; }
 .ad-table td:last-child, .ad-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.foot .foot-admin { color: var(--teal); }
+.ad-scroll { overflow-x: auto; }
+.ad-scroll .ad-table { min-width: 560px; }
+.ad-scroll .ad-table td:last-child { text-align: right; }

@@ -39,7 +39,7 @@
     sb.auth.verifyOtp({ email: email, token: code, type: "email" }).then(function (r) { if (r.error) { msg("#ad-auth-msg", errText(r.error), true); return; } msg("#ad-auth-msg", ""); start(); });
   });
   $("#ad-restart").addEventListener("click", showAuth);
-  function signOut() { sb.auth.signOut().then(showAuth); }
+  function signOut() { try { localStorage.removeItem("movage-admin"); } catch (e) {} sb.auth.signOut().then(showAuth); }
   $("#ad-signout").addEventListener("click", signOut);
   $("#ad-switch").addEventListener("click", signOut);
 
@@ -47,6 +47,7 @@
     sb.auth.getUser().then(function (r) {
       var u = r.data && r.data.user; if (!u) return showAuth();
       return sb.rpc("fb_is_admin").then(function (a) {
+        try { if (a.data) localStorage.setItem("movage-admin", "1"); else localStorage.removeItem("movage-admin"); } catch (e) {}
         if (!a.data) { $("#ad-who").textContent = u.email || ""; show("#ad-denied"); return; }
         $("#ad-me").textContent = u.email || ""; show("#ad-app"); load();
       });
@@ -56,11 +57,13 @@
   /* ---------- stats ---------- */
   function load() {
     msg("#ad-msg", "Loading..."); $("#ad-body").setAttribute("aria-busy", "true");
-    sb.rpc("admin_stats", { p_days: Number($("#ad-days").value) }).then(function (r) {
+    var days = Number($("#ad-days").value);
+    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days })]).then(function (res) {
       $("#ad-body").removeAttribute("aria-busy");
+      var r = res[0], t = res[1];
       if (r.error) { msg("#ad-msg", errText(r.error), true); return; }
       msg("#ad-msg", "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ".");
-      draw(r.data || {});
+      draw(r.data || {}, t.error ? null : (t.data || []));
     });
   }
   $("#ad-days").addEventListener("change", load);
@@ -78,7 +81,7 @@
   var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", website: "Website", general: "Something else" };
   var DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  function draw(s) {
+  function draw(s, top) {
     var a = s.accounts || {}, c = s.community || {}, se = s.sessions || {}, sc = s.scores || {}, ea = s.early_access || {}, fb = s.feedback || {}, d = num(s.days);
     var h = '<div class="cm-stats">' +
       card(fmt(a.total), "Accounts", "+" + fmt(a.new_7) + " this week") +
@@ -86,6 +89,8 @@
       card(fmt(se.users_7), "Did a routine, last 7 days", fmt(se.users_period) + " in " + d + " days") +
       card(fmt(ea.total), "Early access list", "+" + fmt(ea.new_7) + " this week") + "</div>";
 
+    if (top) h += section("Top 10 users", '<p class="fb-fine">By guided time in the last ' + d + " days. Nicknames only.</p>" + '<div class="ad-scroll">' + table(["#", "Nickname", "Sessions", "Days", "Time", "Score", "Last active"],
+      top.map(function (u) { return "<tr><td>" + num(u.rank) + "</td><td>" + esc(u.nickname) + '<small class="ad-sub">' + num(u.clubs) + (num(u.clubs) === 1 ? " club" : " clubs") + (u.member_since ? " &middot; joined " + esc(short(u.member_since)) : "") + "</small></td><td>" + fmt(u.sessions) + "</td><td>" + fmt(u.active_days) + "</td><td>" + hm(u.secs) + "</td><td>" + (u.score == null ? "–" : num(u.score) + (u.verified ? " ✓" : "")) + "</td><td>" + (u.last_active ? esc(short(u.last_active)) : "–") + "</td></tr>"; })) + "</div>");
     h += section("Guided sessions", '<div class="cm-stats">' + card(fmt(se.period), "Sessions, last " + d + " days") + card(hm(se.secs_period), "Time stretching") + card(hm(se.avg_secs), "Average session") + card(fmt(se.total), "All shared sessions") + "</div>" +
       "<h3>Sessions per day</h3>" + bars(se.per_day || [], function (r) { return r.n; }, "Sessions per day", function (r) { return short(r.d) + ": " + num(r.n) + " sessions, " + num(r.users) + " people, " + hm(r.secs); }) +
       "<h3>People active per day</h3>" + bars(se.per_day || [], function (r) { return r.users; }, "People who did a routine each day", function (r) { return short(r.d) + ": " + num(r.users) + " people"; }) +
