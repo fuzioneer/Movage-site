@@ -58,13 +58,42 @@
   function load() {
     msg("#ad-msg", "Loading..."); $("#ad-body").setAttribute("aria-busy", "true");
     var days = Number($("#ad-days").value);
-    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days })]).then(function (res) {
+    Promise.all([sb.rpc("admin_stats", { p_days: days }), sb.rpc("admin_top_users", { p_days: days }), sb.rpc("admin_site_stats", { p_days: days })]).then(function (res) {
       $("#ad-body").removeAttribute("aria-busy");
-      var r = res[0], t = res[1];
+      var r = res[0], t = res[1], w = res[2];
       if (r.error) { msg("#ad-msg", errText(r.error), true); return; }
       msg("#ad-msg", "Updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ".");
-      draw(r.data || {}, t.error ? null : (t.data || []));
+      draw(r.data || {}, t.error ? null : (t.data || []), w.error ? null : (w.data || {}));
+      jump();
     });
+  }
+  /* Section links at the top of the page. */
+  function jump() { var nav = $("#ad-jump"); if (!nav) return; nav.innerHTML = Array.prototype.map.call(document.querySelectorAll(".ad-sec[id]"), function (s) { return '<a class="fb-chip" href="#' + s.id + '">' + esc(s.querySelector("h2").textContent) + "</a>"; }).join(""); }
+
+  function mmss(s) { s = Math.round(num(s)); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s"; }
+  var DEV = { mobile: "Phone", tablet: "Tablet", desktop: "Computer", unknown: "Unknown" };
+  function share(rows, key, label) {
+    var tot = rows.reduce(function (a, x) { return a + num(x.n); }, 0) || 1;
+    return '<div class="ad-share">' + rows.map(function (x) { var p = Math.round(num(x.n) / tot * 100); return '<div class="ad-shr"><span>' + label(x[key]) + '</span><i><em style="width:' + p + '%"></em></i><b>' + p + "%</b></div>"; }).join("") + "</div>";
+  }
+  function pageName(p) { var m = { "/": "Home", "/community.html": "Community", "/feedback.html": "Bugs and ideas", "/support.html": "Support", "/privacy.html": "Privacy", "/delete-account.html": "Delete account", "/mobility-test.html": "Mobility test guide", "/hip-mobility-exercises.html": "Hip mobility exercises", "/stretching-routines-for-runners.html": "Stretches for runners" }; return m[p] ? esc(m[p]) + ' <small class="ad-sub">' + esc(p) + "</small>" : esc(p); }
+  function country(c) { if (c === "??") return '<span class="ad-flag none"></span>Unknown'; var n = c; try { n = new Intl.DisplayNames(["en-GB"], { type: "region" }).of(c) || c; } catch (e) {} return flag(c) + esc(n); }
+  function visitors(w, d) {
+    var pd = w.per_day || [];
+    return section("Website visitors", '<p class="fb-fine">Counted without cookies. A visit is one person on one day, so the same person on three days counts as three visits. Team members signed in on this browser and people with Do Not Track on aren\'t counted.</p>' +
+      '<div class="cm-stats">' + card(fmt(w.live), "On the site now", "Last 5 minutes") + card(fmt(w.today_visits), "Visits today", fmt(w.today_views) + " pages viewed") +
+      card(fmt(w.visits), "Visits, last " + d + " days") + card(fmt(w.views), "Pages viewed, last " + d + " days") +
+      card(w.visits ? (num(w.views) / num(w.visits)).toFixed(1) : "–", "Pages per visit", (w.bounce_pct == null ? "–" : w.bounce_pct + "%") + " left after one page") + card(w.avg_secs == null ? "–" : mmss(w.avg_secs), "Average time on a page") + "</div>" +
+      "<h3>Visits per day</h3>" + bars(pd, function (r) { return r.visits; }, "Visits per day", function (r) { return short(r.d) + ": " + num(r.visits) + " visits, " + num(r.views) + " pages"; }) +
+      "<h3>Top pages</h3>" + '<div class="ad-scroll">' + table(["Page", "Views", "Visits", "Avg time"], (w.pages || []).map(function (p) { return "<tr><td>" + pageName(p.path) + "</td><td>" + fmt(p.views) + "</td><td>" + fmt(p.visits) + "</td><td>" + (p.avg_secs == null ? "–" : mmss(p.avg_secs)) + "</td></tr>"; })) + "</div>" +
+      "<h3>Where visitors came from</h3>" + table(["Source", "Visits"], (w.refs || []).map(function (x) { return "<tr><td>" + esc(x.ref) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
+      ((w.srcs || []).length ? "<h3>Campaign tags</h3>" + table(["utm_source", "Visits"], w.srcs.map(function (x) { return "<tr><td>" + esc(x.src) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) : "") +
+      "<h3>Landing pages</h3>" + table(["First page seen", "Visits"], (w.entry || []).map(function (x) { return "<tr><td>" + pageName(x.path) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
+      "<h3>Countries</h3>" + table(["Country", "Visits"], (w.countries || []).map(function (x) { return "<tr><td>" + country(x.country) + "</td><td>" + fmt(x.n) + "</td></tr>"; })) +
+      '<div class="ad-cols"><div><h3>Devices</h3>' + share(w.devices || [], "k", function (k) { return esc(DEV[k] || k); }) + "</div>" +
+      "<div><h3>Browsers</h3>" + share(w.browsers || [], "k", esc) + "</div>" +
+      "<div><h3>Systems</h3>" + share(w.oses || [], "k", esc) + "</div></div>" +
+      "<h3>Time of day (UK)</h3>" + '<div class="cm-bars ad-bars" role="img" aria-label="Page views by hour">' + (function () { var hs = w.hours || [], mx = Math.max.apply(null, hs.map(function (x) { return num(x.n); }).concat([1])); return hs.map(function (x) { var v = num(x.n); return '<span class="cm-bar' + (v ? " on" : "") + '" style="height:' + (v ? Math.max(5, Math.round(v / mx * 100)) : 2) + '%" title="' + x.h + ":00, " + v + ' views"></span>'; }).join(""); })() + '</div><div class="ad-axis"><span>00:00</span><span>12:00</span><span>23:00</span></div>', "ad-web");
   }
   $("#ad-days").addEventListener("change", load);
   $("#ad-refresh").addEventListener("click", load);
@@ -82,18 +111,19 @@
       (rows.length ? '<div class="ad-axis"><span>' + esc(short(rows[0].d)) + "</span><span>" + esc(short(rows[rows.length - 1].d)) + "</span></div>" : "");
   }
   function table(head, rows) { return '<table class="ad-table"><thead><tr>' + head.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + (rows.length ? rows.join("") : '<tr><td colspan="' + head.length + '">None yet</td></tr>') + "</tbody></table>"; }
-  function section(title, inner) { return '<section class="box ad-sec"><h2 class="fb-h">' + title + "</h2>" + inner + "</section>"; }
+  function section(title, inner, id) { id = id || "ad-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, ""); return '<section class="box ad-sec" id="' + id + '"><h2 class="fb-h">' + title + "</h2>" + inner + "</section>"; }
   var ZONES = [["shoulders", "Shoulders", "var(--z-sh)"], ["overhead", "Overhead", "var(--z-oh)"], ["thorax", "Thorax", "var(--z-th)"], ["postchain", "Posterior chain", "var(--z-pc)"], ["hips", "Hips", "var(--z-hp)"], ["ankles", "Ankles", "var(--z-an)"]];
   var AREA = { today: "Today page", routines: "Routines", test: "Mobility test", history: "History", community: "Community", website: "Website", general: "Something else" };
   var DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  function draw(s, top) {
+  function draw(s, top, web) {
     var a = s.accounts || {}, c = s.community || {}, se = s.sessions || {}, sc = s.scores || {}, ea = s.early_access || {}, fb = s.feedback || {}, d = num(s.days);
     var h = '<div class="cm-stats">' +
       card(fmt(a.total), "Accounts", "+" + fmt(a.new_7) + " this week") +
       card(fmt(a.active_7), "Signed in, last 7 days", fmt(a.active_30) + " in 30 days") +
       card(fmt(se.users_7), "Did a routine, last 7 days", fmt(se.users_period) + " in " + d + " days") +
       card(fmt(ea.total), "Early access list", "+" + fmt(ea.new_7) + " this week") + "</div>";
+    if (web) h += visitors(web, d);
 
     if (top) h += section("Top 10 users", '<p class="fb-fine">By guided time in the last ' + d + " days. Nicknames only.</p>" + '<div class="ad-scroll">' + table(["#", "Nickname", "Sessions", "Days", "Time", "Score", "Last active"],
       top.map(function (u) { return "<tr><td>" + num(u.rank) + "</td><td>" + flag(u.country) + esc(u.nickname) + '<small class="ad-sub">' + num(u.clubs) + (num(u.clubs) === 1 ? " club" : " clubs") + (u.member_since ? " &middot; joined " + esc(short(u.member_since)) : "") + "</small></td><td>" + fmt(u.sessions) + "</td><td>" + fmt(u.active_days) + "</td><td>" + hm(u.secs) + "</td><td>" + (u.score == null ? "–" : num(u.score) + (u.verified ? " ✓" : "")) + "</td><td>" + (u.last_active ? esc(short(u.last_active)) : "–") + "</td></tr>"; })) + "</div>");
